@@ -353,16 +353,38 @@ boardView.setDisk(.dark, atX: 3, y: 4, animated: true) { isFinished in
 
 その他にも、 `BoardView` は補助的にいくつかの API を提供します。 `BoardView` が提供する API は次の通りです。
 
-| API | 概要 |
-|:--|:--|
-| `weak var delegate: BoardViewDelegate?` | セルがタップされたときの挙動を移譲するためのオブジェクトです。 |
-| `func diskAt(x: Int, y: Int) -> Disk?` | `x + 1` 列目・ `y + 1` 行目のセルの状態を返します。セルにディスクが置かれていない場合は `nil` を返します。 |
-| `let height: Int ` | 盤の高さ（ `8` ）を返します。 |
-| `func reset()` | 盤をゲーム開始時に状態に戻します。このメソッドはアニメーションを伴いません。 |
-| `func setDisk(_ disk: Disk?, atX x: Int, y: Int, animated: Bool, completion: ((Bool) -> Void)? = nil)` | `x + 1` 列目・ `y + 1` 行目のセルの状態を与えられた `disk` に変更します。 `animated` が `true` の場合、アニメーションが実行されます。アニメーションの完了通知は `completion` で受け取ることができます。 `completion` が受け取る `Bool` 値は、 `UIView.animate()` （参考: [API リファレンス](https://developer.apple.com/documentation/uikit/uiview/1622515-animate)）等に準じます。 |
-| `let width: Int` | 盤の幅（ `8` ）を返します。 |
-| `let xRange: Range<Int>` | 盤のセルの `x` の範囲（ `0 ..< 8` ）を返します。 |
-| `let yRange: Range<Int>` | 盤のセルの `y` の範囲（ `0 ..< 8` ）を返します。 |
+| `weak var delegate: BoardViewDelegate?` |
+|:--|
+| セルがタップされたときの挙動を移譲するためのオブジェクトです。 |
+
+
+| `func diskAt(x: Int, y: Int) -> Disk?` |
+|:--|
+| `x`, `y` で指定されたセルの状態を返します。セルにディスクが置かれていない場合、 `nil` が返されます。 |
+
+| `let height: Int` |
+|:--|
+| 盤の高さ（ `8` ）を返します。 |
+
+| `func reset()` |
+|:--|
+| 盤をゲーム開始時に状態に戻します。このメソッドはアニメーションを伴いません。 |
+
+| `func setDisk(_ disk: Disk?, atX x: Int, y: Int, animated: Bool, completion: ((Bool) -> Void)? = nil)` |
+|:--|
+| `x`, `y` で指定されたセルの状態を、与えられた `disk` に変更します。 `animated` が `true` の場合、アニメーションが実行されます。アニメーションの完了通知は `completion` ハンドラーで受け取ることができます。ハンドラーが受け取る `Bool` 値は、 `UIView.animate()`  等に準じます。 |
+
+| `let width: Int = 8` |
+|:--|
+| 盤の幅（ `8` ）を表します。 |
+
+| `let xRange: Range<Int>` |
+|:--|
+| 盤のセルの `x` の範囲（ `0 ..< 8` ）を返します。 |
+
+| `let yRange: Range<Int>` |
+|:--|
+| 盤のセルの `y` の範囲（ `0 ..< 8` ）を返します。 |
 
 `BoardView` は `BoardViewDelegate` を通じて、セルがタップされたことを通知します。
 

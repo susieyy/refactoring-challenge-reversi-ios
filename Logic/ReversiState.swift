@@ -1,7 +1,8 @@
 import Foundation
+import ReSwift
 
 final class SideState {
-    private(set) var side: Disk? = .dark // `nil` if the current game is over
+    var side: Disk? = .dark // `nil` if the current game is over
 
     func setSide(_ side: Disk?) {
         self.side = side
@@ -23,8 +24,8 @@ final class SideState {
 }
 
 final class PlayersState {
-    private var player1: Player = .manual
-    private var player2: Player = .manual
+    var player1: Player = .manual
+    var player2: Player = .manual
 
     func setPlayer(player: Player, at side: Disk) {
         switch side {
@@ -47,10 +48,10 @@ final class PlayersState {
 }
 
 public final class ReversiState {
-    private let boardState: BoardState = .init()
-    private let sideState: SideState = .init()
-    private let playersState: PlayersState = .init()
-    private let persistentInteractor: PersistentInteractor
+    let boardState: BoardState = .init()
+    let sideState: SideState = .init()
+    let playersState: PlayersState = .init()
+    let persistentInteractor: PersistentInteractor
 
     public init() {
         self.persistentInteractor = PersistentInteractorImpl()
@@ -179,7 +180,7 @@ public final class ReversiState {
 }
 
 extension Disk {
-    fileprivate var flipped: Disk {
+    var flipped: Disk {
         switch self {
         case .dark: return .light
         case .light: return .dark

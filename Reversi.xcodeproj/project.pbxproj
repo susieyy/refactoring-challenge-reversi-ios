@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,7 +22,10 @@
 		AA308D7D243F1FA30041763B /* BoardState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D78243F1FA30041763B /* BoardState.swift */; };
 		AA308D7E243F1FA30041763B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D79243F1FA30041763B /* Repository.swift */; };
 		AA308D7F243F1FA30041763B /* PersistentInteractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D7A243F1FA30041763B /* PersistentInteractor.swift */; };
+		AA308D85243F3B440041763B /* ReSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA308D84243F3B440041763B /* ReSwift */; };
+		AA308D87243F3B5B0041763B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D86243F3B5B0041763B /* AppState.swift */; };
 		AA308D8B243F40CE0041763B /* ViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = AA308D89243F40CE0041763B /* ViewController.xib */; };
+		AA34F620243F4F7D002C870C /* ReSwift-Thunk in Frameworks */ = {isa = PBXBuildFile; productRef = AA34F61F243F4F7D002C870C /* ReSwift-Thunk */; };
 		D636B39F23D35043007F370F /* DiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636B39E23D35043007F370F /* DiskView.swift */; };
 		D642BDB423A9FE4500396732 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D642BDB323A9FE4500396732 /* AppDelegate.swift */; };
 		D642BDB623A9FE4500396732 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D642BDB523A9FE4500396732 /* SceneDelegate.swift */; };
@@ -96,6 +99,7 @@
 		AA308D78243F1FA30041763B /* BoardState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoardState.swift; sourceTree = "<group>"; };
 		AA308D79243F1FA30041763B /* Repository.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		AA308D7A243F1FA30041763B /* PersistentInteractor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersistentInteractor.swift; sourceTree = "<group>"; };
+		AA308D86243F3B5B0041763B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		AA308D89243F40CE0041763B /* ViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ViewController.xib; sourceTree = "<group>"; };
 		D636B39E23D35043007F370F /* DiskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskView.swift; sourceTree = "<group>"; };
 		D642BDB023A9FE4500396732 /* Reversi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reversi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -117,6 +121,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA34F620243F4F7D002C870C /* ReSwift-Thunk in Frameworks */,
+				AA308D85243F3B440041763B /* ReSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,6 +155,7 @@
 		AA308D49243F1F140041763B /* Logic */ = {
 			isa = PBXGroup;
 			children = (
+				AA308D86243F3B5B0041763B /* AppState.swift */,
 				AA308D76243F1FA30041763B /* AnimationState.swift */,
 				AA308D78243F1FA30041763B /* BoardState.swift */,
 				AA308D7A243F1FA30041763B /* PersistentInteractor.swift */,
@@ -182,6 +189,13 @@
 			path = DataTypes;
 			sourceTree = "<group>";
 		};
+		AA308D83243F3B440041763B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		D636B3A123D43203007F370F /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -200,6 +214,7 @@
 				AA308D49243F1F140041763B /* Logic */,
 				AA308D56243F1F140041763B /* LogicTests */,
 				D642BDB123A9FE4500396732 /* Products */,
+				AA308D83243F3B440041763B /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -266,6 +281,10 @@
 			dependencies = (
 			);
 			name = Logic;
+			packageProductDependencies = (
+				AA308D84243F3B440041763B /* ReSwift */,
+				AA34F61F243F4F7D002C870C /* ReSwift-Thunk */,
+			);
 			productName = Logic;
 			productReference = AA308D48243F1F140041763B /* Logic.framework */;
 			productType = "com.apple.product-type.framework";
@@ -304,6 +323,8 @@
 				AA308D5C243F1F140041763B /* PBXTargetDependency */,
 			);
 			name = Reversi;
+			packageProductDependencies = (
+			);
 			productName = Reversi;
 			productReference = D642BDB023A9FE4500396732 /* Reversi.app */;
 			productType = "com.apple.product-type.application";
@@ -361,6 +382,10 @@
 				Base,
 			);
 			mainGroup = D642BDA723A9FE4500396732;
+			packageReferences = (
+				AA308D80243F3B280041763B /* XCRemoteSwiftPackageReference "ReSwift" */,
+				AA34F61C243F4F2B002C870C /* XCRemoteSwiftPackageReference "ReSwift-Thunk" */,
+			);
 			productRefGroup = D642BDB123A9FE4500396732 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -418,6 +443,7 @@
 				AA308D7F243F1FA30041763B /* PersistentInteractor.swift in Sources */,
 				AA308D71243F1F700041763B /* Disk.swift in Sources */,
 				AA308D7D243F1FA30041763B /* BoardState.swift in Sources */,
+				AA308D87243F3B5B0041763B /* AppState.swift in Sources */,
 				AA308D75243F1F700041763B /* Player.swift in Sources */,
 				AA308D74243F1F700041763B /* Canceller.swift in Sources */,
 				AA308D7C243F1FA30041763B /* ReversiState.swift in Sources */,
@@ -822,6 +848,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AA308D80243F3B280041763B /* XCRemoteSwiftPackageReference "ReSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ReSwift/ReSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+		AA34F61C243F4F2B002C870C /* XCRemoteSwiftPackageReference "ReSwift-Thunk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ReSwift/ReSwift-Thunk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA308D84243F3B440041763B /* ReSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA308D80243F3B280041763B /* XCRemoteSwiftPackageReference "ReSwift" */;
+			productName = ReSwift;
+		};
+		AA34F61F243F4F7D002C870C /* ReSwift-Thunk */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA34F61C243F4F2B002C870C /* XCRemoteSwiftPackageReference "ReSwift-Thunk" */;
+			productName = "ReSwift-Thunk";
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D642BDA823A9FE4500396732 /* Project object */;
 }

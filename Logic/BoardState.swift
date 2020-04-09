@@ -1,19 +1,30 @@
 import Foundation
 
-final class BoardState {
-    private class SquareState {
-        var disk: Disk?
+public class SquareState {
+    public var disk: Disk?
+    public var x: Int
+    public var y: Int
+
+    init(x: Int, y: Int) {
+        self.x = x
+        self.y = y
     }
-    private var squareStates: [SquareState]
+}
+
+final class BoardState {
+       var squareStates: [SquareState]
 
     init() {
-        squareStates = (0 ..< BoardConstant.squaresCount).map { _ in SquareState() }
+        squareStates = (0 ..< BoardConstant.squaresCount).map { i in SquareState(x: i % BoardConstant.width, y: Int(i / BoardConstant.width)) }
+        dump(squareStates)
     }
 
     func setDisk(_ disk: Disk?, atX x: Int, y: Int) {
         guard let squareState = squareStateAt(x: x, y: y) else {
             preconditionFailure() // FIXME: Add a message.
         }
+        assert(squareState.x == x)
+        assert(squareState.y == y)
         squareState.disk = disk
     }
 

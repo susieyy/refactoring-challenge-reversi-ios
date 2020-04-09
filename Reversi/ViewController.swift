@@ -1,8 +1,9 @@
 import UIKit
 import Logic
 import ReSwift
+import ReSwift_Thunk
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, StoreSubscriber {
     @IBOutlet private var boardView: BoardView!
     @IBOutlet private var messageDiskView: DiskView!
     @IBOutlet private var messageLabel: UILabel!
@@ -13,8 +14,10 @@ class ViewController: UIViewController {
     private var messageDiskSize: CGFloat! // to store the size designated in the storyboard
     private let reversiState: ReversiState = .init()
     private let animationState: AnimationState = .init()
+    private let store: Store<AppState>
 
-    init() {
+    init(store: Store<AppState> = Logic.store) {
+        self.store = store
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -26,6 +29,7 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
+        store.subscribe(self)
         loadGame()
     }
     
@@ -36,48 +40,35 @@ class ViewController: UIViewController {
         viewHasAppeared = true
         waitForPlayer()
     }
+
+    func newState(state: AppState) {
+        updateDisksForInitial(state.squareStates)
+        updatePlayerControls(state.player1)
+        updatePlayerControls(state.player2)
+        updateMessageViews(currentTurn: state.currentTurn)
+        updateCountLabels(state.player1)
+        updateCountLabels(state.player2)
+    }
 }
 
 // MARK: Game management
 
 extension ViewController {
     func saveGame() {
-        do {
-            try reversiState.saveGame()
-        } catch let e {
-            dump(e)
-            showAlter(title: "Error occurred.", message: "Cannot save games.")
-        }
+        store.dispatch(AppAction.saveGame())
     }
 
     func loadGame() {
-        do {
-            try reversiState.loadGame()
-            updateDisksForInitial()
-            updatePlayerControls(reversiState)
-            updateMessageViews()
-            updateCountLabels()
-        } catch let e {
-            dump(e)
-            showAlter(title: "Error occurred.", message: "Cannot load games.")
-        }
+        store.dispatch(AppAction.loadGame())
     }
 
     func newGame() {
-        do {
-            animationState.cancelAll()
-            try reversiState.newGame()
-            updateDisksForInitial()
-            updatePlayerControls(reversiState)
-            updateMessageViews()
-            updateCountLabels()
-        } catch let e {
-            dump(e)
-            showAlter(title: "Error occurred.", message: "Cannot new games.")
-        }
+        animationState.cancelAll()
+        store.dispatch(AppAction.newGame())
     }
 
     func nextTurn() {
+        store.dispatch(AppAction.nextTurn)
         guard let turn = reversiState.nextTurn() else {
             gameOver()
             return
@@ -100,11 +91,11 @@ extension ViewController {
             if reversiState.validMoves(for: flippedTurn).isEmpty {
                 gameOver()
             } else {
-                updateMessageViews()
+                updateMessageViews(currentTurn: store.state.currentTurn)
                 showCannotPlaceDiskAlert()
             }
         } else {
-            updateMessageViews()
+            updateMessageViews(currentTurn: store.state.currentTurn)
             waitForPlayer()
         }
     }
@@ -191,8 +182,7 @@ extension ViewController {
     }
 
     func gameOver() {
-        reversiState.gameover()
-        updateGameOver()
+        store.dispatch(AppAction.gameOver)
     }
 }
 
@@ -200,12 +190,9 @@ extension ViewController {
 
 extension ViewController {
     /* Board */
-    func updateDisksForInitial() {
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                let disk = reversiState.diskAt(x: x, y: y)
-                boardView.updateDisk(disk, atX: x, y: y, animated: false)
-            }
+    func updateDisksForInitial(_ squareStates: [SquareState]) {
+        squareStates.forEach {
+            boardView.updateDisk($0.disk, atX: $0.x, y: $0.y, animated: false)
         }
     }
 
@@ -219,7 +206,6 @@ extension ViewController {
 
                 completion?(finished)
                 self.saveGame()
-                self.updateCountLabels()
             }
         } else {
             DispatchQueue.main.async { [weak self] in
@@ -230,7 +216,6 @@ extension ViewController {
                 }
                 completion?(true)
                 self.saveGame()
-                self.updateCountLabels()
             }
         }
     }
@@ -258,20 +243,16 @@ extension ViewController {
     }
 
     /* Game */
-    func updatePlayerControls(_ reversiState: ReversiState) {
-        for side in Disk.sides {
-            playerControls[side.index].selectedSegmentIndex = reversiState.player(at: side).rawValue
-        }
+    func updatePlayerControls(_ playerState: PlayerState) {
+        playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.rawValue
     }
 
-    func updateCountLabels() {
-        for side in Disk.sides {
-            countLabels[side.index].text = "\(reversiState.count(of: side))"
-        }
+    func updateCountLabels(_ playerState: PlayerState) {
+        countLabels[playerState.side.index].text = "\(playerState.count)"
     }
     
-    func updateMessageViews() {
-        switch reversiState.currentTurn {
+    func updateMessageViews(currentTurn: CurrentTurn) {
+        switch currentTurn {
         case .turn(let turn):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = turn.side
@@ -286,8 +267,8 @@ extension ViewController {
         }
     }
 
-    func updateGameOver() {
-        updateMessageViews()
+    func updateGameOver(currentTurn: CurrentTurn) {
+        updateMessageViews(currentTurn: currentTurn)
     }
 
     func showAlter(title: String, message: String) {

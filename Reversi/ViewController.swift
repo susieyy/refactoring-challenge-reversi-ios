@@ -30,7 +30,7 @@ class ViewController: UIViewController, StoreSubscriber {
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
-        store.subscribe(subscriberIsComputerThinking) { appState in appState.select { $0.isComputerThinking }.skipRepeats() }
+        store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
         store.subscribe(subscriberLastChangedSquareStates) { appState in appState.select { $0.squareStates }.skipRepeats() }
         loadGame()
@@ -54,12 +54,8 @@ class ViewController: UIViewController, StoreSubscriber {
 
     private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
         switch $0 {
-        case .initial(let squareStates):
-            self.store.dispatch(AppAction.gameStart)
         case .turn:
             break
-            // guard let lastChangedSquareStates = self.store.state.lastChangedSquareStates else { return }
-            //self.updateLastChangedSquareStates(lastChangedSquareStates)
         case .gameOverTied, .gameOverWon:
             break
         }
@@ -76,10 +72,12 @@ class ViewController: UIViewController, StoreSubscriber {
             }
         }
     }
-    private lazy var subscriberIsComputerThinking = BlockSubscriber<Bool>() { [unowned self] in
-        if case .turn(let turn) = self.store.state.currentTurn {
-            let indicator = self.playerActivityIndicators[turn.side.index]
-            $0 ? indicator.startAnimating() : indicator.stopAnimating()
+    private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
+        switch $0 {
+        case .thinking(let side):
+            self.playerActivityIndicators[side.index].startAnimating()
+        case .none:
+            self.playerActivityIndicators.forEach { $0.stopAnimating() }
         }
     }
     private lazy var subscriberShouldShowCannotPlaceDisk = BlockSubscriber<Trigger?>() { [unowned self] in
@@ -111,8 +109,6 @@ extension ViewController {
 
     func waitForPlayer() {
         switch store.state.currentTurn {
-        case .initial:
-            break
         case .turn(let turn):
             switch turn.player {
             case .manual:
@@ -216,8 +212,6 @@ extension ViewController {
     
     func updateMessageViews(currentTurn: CurrentTurn) {
         switch currentTurn {
-        case .initial:
-            break
         case .turn(let turn):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = turn.side

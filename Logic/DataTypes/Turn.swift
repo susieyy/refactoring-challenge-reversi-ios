@@ -6,7 +6,6 @@ public struct Turn: Equatable {
 }
 
 public enum CurrentTurn: Equatable {
-    case initial([SquareState])
     case turn(Turn)
     case gameOverWon(Turn)
     case gameOverTied
@@ -15,7 +14,7 @@ public enum CurrentTurn: Equatable {
         switch self {
         case .gameOverWon, .gameOverTied:
             return true
-        case .initial, .turn:
+        case .turn:
             return false
         }
     }

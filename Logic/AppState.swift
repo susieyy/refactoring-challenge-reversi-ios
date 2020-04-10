@@ -6,6 +6,11 @@ public struct Trigger: Equatable {
     let uuid: String = NSUUID().uuidString
 }
 
+public enum ComputerThinking: Equatable {
+    case none
+    case thinking(Disk)
+}
+
 public struct SquareStates: StateType, Equatable {
     public struct LastSquare: StateType, Equatable {
         public var disk: Disk
@@ -17,7 +22,6 @@ public struct SquareStates: StateType, Equatable {
     public let squareStates: [SquareState]
     public let animated: Bool
 }
-
 
 public struct PlayerState: StateType {
     private let boardState: BoardState
@@ -40,15 +44,12 @@ public struct AppState: StateType {
     let persistentInteractor: PersistentInteractor
     var boardState: BoardState = .init()
     var side: Disk? = .dark
-    var initial: Bool = false
     public var player1: PlayerState
     public var player2: PlayerState
     public var squareStates: SquareStates = .init(lastPlacedSquare: nil, lastChangedSquares: [], squareStates: [], animated: false)
-    public var isComputerThinking: Bool = false
+    public var computerThinking: ComputerThinking = .none
     public var currentTurn: CurrentTurn {
-        if initial && !squareStates.squareStates.isEmpty {
-            return CurrentTurn.initial(squareStates.squareStates)
-        } else if let side = side {
+        if let side = side {
             let player = self.player(at: side)
             return CurrentTurn.turn(Turn(side: side, player: player))
         } else {
@@ -125,8 +126,6 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
         case .didShowCannotPlaceDisk:
             state.shouldShowCannotPlaceDisk = nil
-        case .gameStart:
-            state.initial = false
         case .gameOver:
             state.side = nil
         }
@@ -148,17 +147,16 @@ func reducer(action: Action, state: AppState?) -> AppState {
             state.boardState = boardState
             state.player1 = .init(side: .dark, boardState: boardState)
             state.player2 = .init(side: .light, boardState: boardState)
-            state.initial = true
             state.squareStates = SquareStates(
                 lastPlacedSquare: nil,
                 lastChangedSquares: [],
                 squareStates: state.boardState.squareStates,
                 animated: false)
 
-        case .startComputerThinking:
-            state.isComputerThinking = true
+         case .startComputerThinking(let side):
+            state.computerThinking = .thinking(side)
         case .endComputerThinking:
-           state.isComputerThinking = false
+            state.computerThinking = .none
         }
     }
     return state
@@ -212,7 +210,6 @@ public enum AppAction: Action {
     case placeDisk(disk: Disk, x: Int, y: Int)
     case changeSquares([SquareState])
     case nextTurn
-    case gameStart
     case gameOver
     case didShowCannotPlaceDisk
 }
@@ -221,7 +218,7 @@ enum AppPrivateAction: Action {
     case changePlayer(side: Disk, player: Player)
     case resetAllState
     case finisedLoadGame(LoadData)
-    case startComputerThinking
+    case startComputerThinking(Disk)
     case endComputerThinking
     case finisedSaveGame
 }
@@ -242,6 +239,7 @@ extension AppAction {
                 // try state.persistentInteractor.saveGame(side: state.side, playersState: state.playersState, boardState: state.boardState)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
+                dump(error)
                 let title = "Error occurred."
                 let message = "Cannot save games."
                 dispatch(ErrorAction(error: error, title: title, message: message))
@@ -286,7 +284,7 @@ extension AppAction {
 //                    self?.playerActivityIndicators[side.index].stopAnimating()
 //                }
 ///                let canceller = animationState.createAnimationCanceller(at: side, cleanUp: cleanUp)
-                store.dispatch(AppPrivateAction.startComputerThinking)
+                store.dispatch(AppPrivateAction.startComputerThinking(side))
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
 //                    if canceller.isCancelled { return }
 //                    canceller.cancel()
@@ -294,7 +292,7 @@ extension AppAction {
                     store.dispatch(AppPrivateAction.endComputerThinking) // FIXME:
                     store.dispatch(AppAction.placeDisk(disk: side, x: x, y: y))
                 }
-            case .initial, .gameOverWon, .gameOverTied:
+            case .gameOverWon, .gameOverTied:
                 preconditionFailure()
             }
         }

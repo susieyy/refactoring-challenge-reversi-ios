@@ -6,14 +6,16 @@ public struct Trigger: Equatable {
     let uuid: String = NSUUID().uuidString
 }
 
-public struct LastChangedSquareStates: StateType, Equatable {
+public struct SquareStates: StateType, Equatable {
     public struct LastSquare: StateType, Equatable {
         public var disk: Disk
         public var x: Int
         public var y: Int
     }
-    public let lastPlacedSquare: LastSquare
+    public let lastPlacedSquare: LastSquare?
     public let lastChangedSquares: [LastSquare]
+    public let squareStates: [SquareState]
+    public let animated: Bool
 }
 
 
@@ -41,11 +43,11 @@ public struct AppState: StateType {
     var initial: Bool = false
     public var player1: PlayerState
     public var player2: PlayerState
-    public var squareStates: [SquareState] { boardState.squareStates }
-    public var lastChangedSquareStates: LastChangedSquareStates?
+    public var squareStates: SquareStates = .init(lastPlacedSquare: nil, lastChangedSquares: [], squareStates: [], animated: false)
+    public var isComputerThinking: Bool = false
     public var currentTurn: CurrentTurn {
-        if initial && !squareStates.isEmpty {
-            return CurrentTurn.initial(squareStates)
+        if initial && !squareStates.squareStates.isEmpty {
+            return CurrentTurn.initial(squareStates.squareStates)
         } else if let side = side {
             let player = self.player(at: side)
             return CurrentTurn.turn(Turn(side: side, player: player))
@@ -91,11 +93,15 @@ func reducer(action: Action, state: AppState?) -> AppState {
                     state.boardState.setDisk($0.disk, atX: $0.x, y: $0.y)
                 }
 
-                let lastSquareState = LastChangedSquareStates.LastSquare(disk: disk, x: x, y: y)
+                let lastSquareState = SquareStates.LastSquare(disk: disk, x: x, y: y)
                 let lastChangedSquares = diskCoordinates.map {
-                    LastChangedSquareStates.LastSquare(disk: disk, x: $0.0, y: $0.1)
+                    SquareStates.LastSquare(disk: disk, x: $0.0, y: $0.1)
                 }
-                state.lastChangedSquareStates = LastChangedSquareStates(lastPlacedSquare: lastSquareState, lastChangedSquares: lastChangedSquares)
+                state.squareStates = SquareStates(
+                    lastPlacedSquare: lastSquareState,
+                    lastChangedSquares: lastChangedSquares,
+                    squareStates: state.boardState.squareStates,
+                    animated: true)
             }
         case .changeSquares(let squares):
             squares.forEach {
@@ -143,6 +149,16 @@ func reducer(action: Action, state: AppState?) -> AppState {
             state.player1 = .init(side: .dark, boardState: boardState)
             state.player2 = .init(side: .light, boardState: boardState)
             state.initial = true
+            state.squareStates = SquareStates(
+                lastPlacedSquare: nil,
+                lastChangedSquares: [],
+                squareStates: state.boardState.squareStates,
+                animated: false)
+
+        case .startComputerThinking:
+            state.isComputerThinking = true
+        case .endComputerThinking:
+           state.isComputerThinking = false
         }
     }
     return state
@@ -169,6 +185,10 @@ extension BoardState {
                 state.setDisk(.dark, atX: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2)
                 state.setDisk(.light, atX: BoardConstant.width / 2, y: BoardConstant.height / 2)
              case .changePlayer:
+                break
+            case .startComputerThinking:
+                break
+            case .endComputerThinking:
                 break
             }
         }
@@ -201,6 +221,8 @@ enum AppPrivateAction: Action {
     case changePlayer(side: Disk, player: Player)
     case resetAllState
     case finisedLoadGame(LoadData)
+    case startComputerThinking
+    case endComputerThinking
     case finisedSaveGame
 }
 
@@ -247,6 +269,36 @@ extension AppAction {
             dispatch(AppAction.saveGame())
         }
     }
+
+    public static func playTurnOfComputer() -> Thunk<AppState> {
+        return Thunk<AppState> { dispatch, getState in
+            guard let state = getState() else { return }
+            switch state.currentTurn {
+            case .turn(let turn):
+                let candidates = state.boardState.validMoves(for: turn.side)
+                if candidates.isEmpty {
+                    dispatch(AppAction.nextTurn)
+                    return
+                }
+                guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
+                let side = turn.side
+//                let cleanUp: Canceller.CleanUp = { [weak self] in
+//                    self?.playerActivityIndicators[side.index].stopAnimating()
+//                }
+///                let canceller = animationState.createAnimationCanceller(at: side, cleanUp: cleanUp)
+                store.dispatch(AppPrivateAction.startComputerThinking)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+//                    if canceller.isCancelled { return }
+//                    canceller.cancel()
+
+                    store.dispatch(AppPrivateAction.endComputerThinking) // FIXME:
+                    store.dispatch(AppAction.placeDisk(disk: side, x: x, y: y))
+                }
+            case .initial, .gameOverWon, .gameOverTied:
+                preconditionFailure()
+            }
+        }
+    }
 }
 
 let thunkMiddleware: Middleware<AppState> = createThunkMiddleware()
@@ -254,9 +306,7 @@ let thunkMiddleware: Middleware<AppState> = createThunkMiddleware()
 let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
     return { next in
         return { action in
-            // perform middleware logic
-            print(action)
-            // call next middleware
+            dump(action)
             return next(action)
         }
     }

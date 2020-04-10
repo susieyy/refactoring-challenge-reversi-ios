@@ -14,7 +14,6 @@ class ViewController: UIViewController, StoreSubscriber {
     private var messageDiskSize: CGFloat! // to store the size designated in the storyboard
     private let animationState: AnimationState = .init()
     private let store: Store<AppState>
-    private var lastChangedSquareStates: LastChangedSquareStates?
 
     init(store: Store<AppState> = Logic.store) {
         self.store = store
@@ -30,9 +29,13 @@ class ViewController: UIViewController, StoreSubscriber {
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
+        store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
+        store.subscribe(subscriberIsComputerThinking) { appState in appState.select { $0.isComputerThinking }.skipRepeats() }
+        store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
+        store.subscribe(subscriberLastChangedSquareStates) { appState in appState.select { $0.squareStates }.skipRepeats() }
         loadGame()
     }
-    
+
     private var viewHasAppeared: Bool = false
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -47,32 +50,42 @@ class ViewController: UIViewController, StoreSubscriber {
         updateCountLabels(state.player1)
         updateCountLabels(state.player2)
         updateMessageViews(currentTurn: state.currentTurn)
+    }
 
-        if state.shouldShowCannotPlaceDisk != nil {
-            showCannotPlaceDiskAlert()
-            store.dispatch(AppAction.didShowCannotPlaceDisk)
-        }
-
-        switch store.state.currentTurn {
+    private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
+        switch $0 {
         case .initial(let squareStates):
-            updateDisksForInitial(squareStates)
-            store.dispatch(AppAction.gameStart)
+            self.store.dispatch(AppAction.gameStart)
         case .turn:
-            guard let lastChangedSquareStates = state.lastChangedSquareStates else { return }
-            updateLastChangedSquareStates(lastChangedSquareStates)
+            break
+            // guard let lastChangedSquareStates = self.store.state.lastChangedSquareStates else { return }
+            //self.updateLastChangedSquareStates(lastChangedSquareStates)
         case .gameOverTied, .gameOverWon:
             break
         }
     }
-
-    func updateLastChangedSquareStates(_ lastChangedSquareStates: LastChangedSquareStates) {
-        guard self.lastChangedSquareStates != lastChangedSquareStates else { return }
-        let s = lastChangedSquareStates.lastPlacedSquare
-        let diskCoordinates: [(Int, Int)] = lastChangedSquareStates.lastChangedSquares.map { ($0.x, $0.y) }
-        updateDisks(s.disk, atX: s.x, y: s.y, diskCoordinates: diskCoordinates, animated: true) { [weak self] _ in
-            self?.nextTurn()
+    private lazy var subscriberLastChangedSquareStates = BlockSubscriber<SquareStates>() { [unowned self] in
+        switch $0.animated {
+        case false:
+            self.updateDisksForInitial($0.squareStates)
+        case true:
+            guard let s = $0.lastPlacedSquare else { return }
+            let diskCoordinates: [(Int, Int)] = $0.lastChangedSquares.map { ($0.x, $0.y) }
+            self.updateDisks(s.disk, atX: s.x, y: s.y, diskCoordinates: diskCoordinates, animated: true) { [weak self] _ in
+                self?.nextTurn()
+            }
         }
-        self.lastChangedSquareStates = lastChangedSquareStates
+    }
+    private lazy var subscriberIsComputerThinking = BlockSubscriber<Bool>() { [unowned self] in
+        if case .turn(let turn) = self.store.state.currentTurn {
+            let indicator = self.playerActivityIndicators[turn.side.index]
+            $0 ? indicator.startAnimating() : indicator.stopAnimating()
+        }
+    }
+    private lazy var subscriberShouldShowCannotPlaceDisk = BlockSubscriber<Trigger?>() { [unowned self] in
+        if $0 == nil { return }
+        self.showCannotPlaceDiskAlert()
+        self.store.dispatch(AppAction.didShowCannotPlaceDisk)
     }
 }
 
@@ -113,32 +126,7 @@ extension ViewController {
     }
     
     func playTurnOfComputer() {
-//        switch store.state.currentTurn {
-//        case .turn(let turn):
-//            let candidates = reversiState.validMoves(for: turn)
-//            if candidates.isEmpty {
-//                nextTurn()
-//                return
-//            }
-//            guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
-//            let side = turn.side
-//            playerActivityIndicators[side.index].startAnimating()
-//
-//            let cleanUp: Canceller.CleanUp = { [weak self] in
-//                self?.playerActivityIndicators[side.index].stopAnimating()
-//            }
-//            let canceller = animationState.createAnimationCanceller(at: side, cleanUp: cleanUp)
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-//                guard let self = self else { return }
-//                if canceller.isCancelled { return }
-//                canceller.cancel()
-//                self.placeDisk(disk: side, atX: x, y: y, animated: true) { [weak self] _ in
-//                    self?.nextTurn()
-//                }
-//            }
-//        case .gameOverWon, .gameOverTied:
-//            preconditionFailure()
-//        }
+        store.dispatch(AppAction.playTurnOfComputer())
     }
 
     func placeDisk(disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
@@ -153,6 +141,7 @@ extension ViewController {
         // if !animationState.isAnimating && reversiState.canPlayTurnOfComputer(at: side) {
         //    playTurnOfComputer()
         //}
+        playTurnOfComputer()
     }
 
     func gameOver() {
@@ -218,7 +207,7 @@ extension ViewController {
 
     /* Game */
     func updatePlayerControls(_ playerState: PlayerState) {
-        playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.rawValue
+        playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.index
     }
 
     func updateCountLabels(_ playerState: PlayerState) {
@@ -323,5 +312,18 @@ extension Disk {
         case .dark: return "dark"
         case .light: return "light"
         }
+    }
+}
+
+public class BlockSubscriber<S>: StoreSubscriber {
+    public typealias StoreSubscriberStateType = S
+    private let block: (S) -> Void
+
+    public init(_ block: @escaping (S) -> Void) {
+        self.block = block
+    }
+
+    public func newState(state: S) {
+        self.block(state)
     }
 }

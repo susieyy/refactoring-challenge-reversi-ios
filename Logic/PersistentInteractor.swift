@@ -41,7 +41,7 @@ class PersistentInteractorImpl: PersistentInteractor {
         output += side.symbol
 
         for side in Disk.sides {
-            output += playersState.player(at: side).rawValue.description
+            output += playersState.player(at: side).index.description
         }
         output += "\n"
 
@@ -78,7 +78,7 @@ class PersistentInteractorImpl: PersistentInteractor {
             guard
                 let playerSymbol = line.popFirst(),
                 let playerNumber = Int(playerSymbol.description),
-                let player = Player(rawValue: playerNumber)
+                let player = Player(index: playerNumber)
             else {
                 throw PersistentError.parse(path: path, cause: nil)
             }

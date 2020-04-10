@@ -6,6 +6,7 @@ public struct Turn {
 }
 
 public enum CurrentTurn {
+    case initial([SquareState])
     case turn(Turn)
     case gameOverWon(Turn)
     case gameOverTied
@@ -14,7 +15,7 @@ public enum CurrentTurn {
         switch self {
         case .gameOverWon, .gameOverTied:
             return true
-        case .turn:
+        case .initial, .turn:
             return false
         }
     }

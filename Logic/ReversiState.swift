@@ -47,6 +47,7 @@ final class PlayersState {
     }
 }
 
+/*
 public final class ReversiState {
     let boardState: BoardState = .init()
     let sideState: SideState = .init()
@@ -178,12 +179,4 @@ public final class ReversiState {
         playersState.reset()
     }
 }
-
-extension Disk {
-    var flipped: Disk {
-        switch self {
-        case .dark: return .light
-        case .light: return .dark
-        }
-    }
-}
+*/

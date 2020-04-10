@@ -12,9 +12,9 @@ class ViewController: UIViewController, StoreSubscriber {
     @IBOutlet private var countLabels: [UILabel]!
     @IBOutlet private var playerActivityIndicators: [UIActivityIndicatorView]!
     private var messageDiskSize: CGFloat! // to store the size designated in the storyboard
-    private let reversiState: ReversiState = .init()
     private let animationState: AnimationState = .init()
     private let store: Store<AppState>
+    private var lastChangedSquareStates: LastChangedSquareStates?
 
     init(store: Store<AppState> = Logic.store) {
         self.store = store
@@ -42,12 +42,37 @@ class ViewController: UIViewController, StoreSubscriber {
     }
 
     func newState(state: AppState) {
-        updateDisksForInitial(state.squareStates)
         updatePlayerControls(state.player1)
         updatePlayerControls(state.player2)
-        updateMessageViews(currentTurn: state.currentTurn)
         updateCountLabels(state.player1)
         updateCountLabels(state.player2)
+        updateMessageViews(currentTurn: state.currentTurn)
+
+        if state.shouldShowCannotPlaceDisk != nil {
+            showCannotPlaceDiskAlert()
+            store.dispatch(AppAction.didShowCannotPlaceDisk)
+        }
+
+        switch store.state.currentTurn {
+        case .initial(let squareStates):
+            updateDisksForInitial(squareStates)
+            store.dispatch(AppAction.gameStart)
+        case .turn:
+            guard let lastChangedSquareStates = state.lastChangedSquareStates else { return }
+            updateLastChangedSquareStates(lastChangedSquareStates)
+        case .gameOverTied, .gameOverWon:
+            break
+        }
+    }
+
+    func updateLastChangedSquareStates(_ lastChangedSquareStates: LastChangedSquareStates) {
+        guard self.lastChangedSquareStates != lastChangedSquareStates else { return }
+        let s = lastChangedSquareStates.lastPlacedSquare
+        let diskCoordinates: [(Int, Int)] = lastChangedSquareStates.lastChangedSquares.map { ($0.x, $0.y) }
+        updateDisks(s.disk, atX: s.x, y: s.y, diskCoordinates: diskCoordinates, animated: true) { [weak self] _ in
+            self?.nextTurn()
+        }
+        self.lastChangedSquareStates = lastChangedSquareStates
     }
 }
 
@@ -69,39 +94,12 @@ extension ViewController {
 
     func nextTurn() {
         store.dispatch(AppAction.nextTurn)
-        guard let turn = reversiState.nextTurn() else {
-            gameOver()
-            return
-        }
-
-        func showCannotPlaceDiskAlert() {
-            let alertController = UIAlertController(
-                title: "Pass",
-                message: "Cannot place a disk.",
-                preferredStyle: .alert
-            )
-            alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-                self?.nextTurn()
-            })
-            present(alertController, animated: true)
-        }
-
-        if reversiState.validMoves(for: turn).isEmpty {
-            let flippedTurn = reversiState.flippedTurn(turn)
-            if reversiState.validMoves(for: flippedTurn).isEmpty {
-                gameOver()
-            } else {
-                updateMessageViews(currentTurn: store.state.currentTurn)
-                showCannotPlaceDiskAlert()
-            }
-        } else {
-            updateMessageViews(currentTurn: store.state.currentTurn)
-            waitForPlayer()
-        }
     }
 
     func waitForPlayer() {
-        switch reversiState.currentTurn {
+        switch store.state.currentTurn {
+        case .initial:
+            break
         case .turn(let turn):
             switch turn.player {
             case .manual:
@@ -115,70 +113,46 @@ extension ViewController {
     }
     
     func playTurnOfComputer() {
-        switch reversiState.currentTurn {
-        case .turn(let turn):
-            let candidates = reversiState.validMoves(for: turn)
-            if candidates.isEmpty {
-                nextTurn()
-                return
-            }
-            guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
-            let side = turn.side
-            playerActivityIndicators[side.index].startAnimating()
-
-            let cleanUp: Canceller.CleanUp = { [weak self] in
-                self?.playerActivityIndicators[side.index].stopAnimating()
-            }
-            let canceller = animationState.createAnimationCanceller(at: side, cleanUp: cleanUp)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                guard let self = self else { return }
-                if canceller.isCancelled { return }
-                canceller.cancel()
-                self.placeDisk(player: .computer, disk: side, atX: x, y: y, animated: true) { [weak self] _ in
-                    self?.nextTurn()
-                }
-            }
-        case .gameOverWon, .gameOverTied:
-            preconditionFailure()
-        }
+//        switch store.state.currentTurn {
+//        case .turn(let turn):
+//            let candidates = reversiState.validMoves(for: turn)
+//            if candidates.isEmpty {
+//                nextTurn()
+//                return
+//            }
+//            guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
+//            let side = turn.side
+//            playerActivityIndicators[side.index].startAnimating()
+//
+//            let cleanUp: Canceller.CleanUp = { [weak self] in
+//                self?.playerActivityIndicators[side.index].stopAnimating()
+//            }
+//            let canceller = animationState.createAnimationCanceller(at: side, cleanUp: cleanUp)
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+//                guard let self = self else { return }
+//                if canceller.isCancelled { return }
+//                canceller.cancel()
+//                self.placeDisk(disk: side, atX: x, y: y, animated: true) { [weak self] _ in
+//                    self?.nextTurn()
+//                }
+//            }
+//        case .gameOverWon, .gameOverTied:
+//            preconditionFailure()
+//        }
     }
 
-    /// - Parameter completion: A closure to be executed when the animation sequence ends.
-    ///     This closure has no return value and takes a single Boolean argument that indicates
-    ///     whether or not the animations actually finished before the completion handler was called.
-    ///     If `animated` is `false`,  this closure is performed at the beginning of the next run loop cycle. This parameter may be `nil`.
-    /// - Throws: `DiskPlacementError` if the `disk` cannot be placed at (`x`, `y`).
-    func placeDisk(player: Player, disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
-        do {
-            let diskCoordinates = try reversiState.flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
-
-            reversiState.setDisk(disk, atX: x, y: y)
-            for (x, y) in diskCoordinates {
-                reversiState.setDisk(disk, atX: x, y: y)
-            }
-
-            updateDisks(disk, atX: x, y: y, diskCoordinates: diskCoordinates, animated: isAnimated, completion: completion)
-        } catch let e as ReversiState.DiskPlacementError {
-            switch player {
-            case .manual:
-                break // because doing nothing when an error occurs
-            case .computer:
-                dump(e)
-                showAlter(title: "Error occurred.", message: "Cannot place \(e.disk.name) disk at x: \(e.x) y: \(e.y)")
-            }
-        } catch let e {
-            dump(e)
-            showAlter(title: "Error occurred.", message: "Unknown error occurred.")
-        }
+    func placeDisk(disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+        store.dispatch(AppAction.placeDisk(disk: disk, x: x, y: y))
     }
 
     func changePlayer(side: Disk, player: Player) {
-        reversiState.changePlayer(side: side, player: player)
-        saveGame()
+        store.dispatch(AppAction.changePlayer(side: side, player: player))
         animationState.cancel(at: side)
-        if !animationState.isAnimating && reversiState.canPlayTurnOfComputer(at: side) {
-            playTurnOfComputer()
-        }
+
+        // FIXME:
+        // if !animationState.isAnimating && reversiState.canPlayTurnOfComputer(at: side) {
+        //    playTurnOfComputer()
+        //}
     }
 
     func gameOver() {
@@ -253,6 +227,8 @@ extension ViewController {
     
     func updateMessageViews(currentTurn: CurrentTurn) {
         switch currentTurn {
+        case .initial:
+            break
         case .turn(let turn):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = turn.side
@@ -267,14 +243,22 @@ extension ViewController {
         }
     }
 
-    func updateGameOver(currentTurn: CurrentTurn) {
-        updateMessageViews(currentTurn: currentTurn)
-    }
-
     func showAlter(title: String, message: String) {
         let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             self?.newGame()
+        })
+        present(alertController, animated: true)
+    }
+
+    func showCannotPlaceDiskAlert() {
+        let alertController = UIAlertController(
+            title: "Pass",
+            message: "Cannot place a disk.",
+            preferredStyle: .alert
+        )
+        alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
+            self?.nextTurn()
         })
         present(alertController, animated: true)
     }
@@ -312,10 +296,10 @@ extension ViewController {
 
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
-        guard case .turn(let turn) = reversiState.currentTurn else { return }
+        guard case .turn(let turn) = store.state.currentTurn else { return }
         if animationState.isAnimating { return }
         guard case .manual = turn.player else { return }
-        placeDisk(player: .manual, disk: turn.side, atX: x, y: y, animated: true) { [weak self] _ in
+        placeDisk(disk: turn.side, atX: x, y: y, animated: true) { [weak self] _ in
             self?.nextTurn()
         }
     }

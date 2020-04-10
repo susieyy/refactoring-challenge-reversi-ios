@@ -1,18 +1,23 @@
 import Foundation
 
-public class SquareState {
+public class SquareState: Equatable {
     public var disk: Disk?
     public var x: Int
     public var y: Int
 
-    init(x: Int, y: Int) {
+    public init(disk: Disk? = nil, x: Int, y: Int) {
+        self.disk = disk
         self.x = x
         self.y = y
+    }
+
+    public static func == (lhs: SquareState, rhs: SquareState) -> Bool {
+        lhs.disk == rhs.disk && lhs.x == rhs.x && lhs.y == rhs.y
     }
 }
 
 final class BoardState {
-       var squareStates: [SquareState]
+    var squareStates: [SquareState]
 
     init() {
         squareStates = (0 ..< BoardConstant.squaresCount).map { i in SquareState(x: i % BoardConstant.width, y: Int(i / BoardConstant.width)) }

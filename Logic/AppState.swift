@@ -1,6 +1,5 @@
 import Foundation
 import ReSwift
-import ReSwift_Thunk
 
 public struct Trigger: Equatable {
     let uuid: String = NSUUID().uuidString
@@ -31,7 +30,6 @@ public struct PlayerState: StateType {
     public var count: Int {
         boardState.count(of: side)
     }
-    // var canPlayTurnOfComputer: Bool
 
     init(side: Disk, boardState: BoardState) {
         self.side = side
@@ -41,10 +39,9 @@ public struct PlayerState: StateType {
 }
 
 public struct AppState: StateType {
-    let persistentInteractor: PersistentInteractor
     var boardState: BoardState = .init()
     var side: Disk? = .dark
-    public var isStaring: Bool = false
+    var isStaring: Bool = false
     public var player1: PlayerState
     public var player2: PlayerState
     public var squareStates: SquareStates = .init(lastPlacedSquare: nil, lastChangedSquares: [], squareStates: [], animated: false)
@@ -66,8 +63,7 @@ public struct AppState: StateType {
     }
     public var shouldShowCannotPlaceDisk: Trigger?
 
-    init(persistentInteractor: PersistentInteractor = PersistentInteractorImpl()) {
-        self.persistentInteractor = persistentInteractor
+    init() {
         self.player1 = .init(side: .dark, boardState: boardState)
         self.player2 = .init(side: .light, boardState: boardState)
     }
@@ -227,18 +223,18 @@ enum AppPrivateAction: Action {
 
 extension AppAction {
     public static func newGame() -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState in
+        return Thunk<AppState> { dispatch, getState, dependency in
             dispatch(AppPrivateAction.resetAllState)
             dispatch(AppAction.saveGame())
         }
     }
 
     public static func saveGame() -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState in
+        return Thunk<AppState> { dispatch, getState, dependency in
             do {
                 guard let state = getState() else { return }
                 // FIXME:
-                // try state.persistentInteractor.saveGame(side: state.side, playersState: state.playersState, boardState: state.boardState)
+                // try dependency.persistentInteractor.saveGame(side: state.side, playersState: state.playersState, boardState: state.boardState)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
                 dump(error)
@@ -250,11 +246,10 @@ extension AppAction {
     }
 
     public static func loadGame() -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState in
+        return Thunk<AppState> { dispatch, getState, dependency in
             do {
-                guard let state = getState() else { return }
                 dispatch(AppPrivateAction.resetAllState)
-                let loadData = try state.persistentInteractor.loadGame()
+                let loadData = try dependency.persistentInteractor.loadGame()
                 dispatch(AppPrivateAction.finisedLoadGame(loadData))
             } catch let error {
                 dump(error)
@@ -264,7 +259,7 @@ extension AppAction {
     }
 
     public static func changePlayer(side: Disk, player: Player) -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState in
+        return Thunk<AppState> { dispatch, getState, dependency in
             if case .manual = player {
                 dispatch(AppPrivateAction.endComputerThinking)
             }
@@ -273,8 +268,27 @@ extension AppAction {
         }
     }
 
-    public static func playTurnOfComputer() -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState in
+    public static func waitForPlayer() -> Thunk<AppState> {
+        return Thunk<AppState> { dispatch, getState, dependency in
+            guard let state = getState() else { return }
+            switch state.currentTurn {
+            case .start:
+                break
+            case .turn(let turn):
+                switch turn.player {
+                case .manual:
+                    break
+                case .computer:
+                    dispatch(AppAction.playTurnOfComputer())
+                }
+            case .gameOverWon, .gameOverTied:
+                break
+            }
+        }
+    }
+
+    private static func playTurnOfComputer() -> Thunk<AppState> {
+        return Thunk<AppState> { dispatch, getState, dependencye in
             guard let state = getState() else { return }
             switch state.currentTurn {
             case .start:
@@ -299,43 +313,52 @@ extension AppAction {
             }
         }
     }
+}
 
-    public static func waitForPlayer() -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState in
-            guard let state = getState() else { return }
-            switch state.currentTurn {
-            case .start:
-                break
-            case .turn(let turn):
-                switch turn.player {
-                case .manual:
-                    break
-                case .computer:
-                    dispatch(AppAction.playTurnOfComputer())
-                }
-            case .gameOverWon, .gameOverTied:
-                break
-            }
-        }
+protocol Dependency {
+    var persistentInteractor: PersistentInteractor { get }
+}
+
+struct DependencyImpl: Dependency {
+    let persistentInteractor: PersistentInteractor
+
+    init(persistentInteractor: PersistentInteractor = PersistentInteractorImpl()) {
+        self.persistentInteractor = persistentInteractor
     }
 }
 
 let thunkMiddleware: Middleware<AppState> = createThunkMiddleware()
+
+public struct Thunk<State>: Action {
+    let body: (_ dispatch: @escaping DispatchFunction, _ getState: @escaping () -> State?, _ dependency: Dependency) -> Void
+    init(body: @escaping (
+        _ dispatch: @escaping DispatchFunction,
+        _ getState: @escaping () -> State?,
+        _ dependency: Dependency) -> Void) {
+        self.body = body
+    }
+}
+
+func createThunkMiddleware<State>(dependency: Dependency = DependencyImpl()) -> Middleware<State> {
+    return { dispatch, getState in
+        return { next in
+            return { action in
+                switch action {
+                case let thunk as Thunk<State>:
+                    thunk.body(dispatch, getState, dependency)
+                default:
+                    next(action)
+                }
+            }
+        }
+    }
+}
 
 let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
     return { next in
         return { action in
             dump(action)
             return next(action)
-        }
-    }
-}
-
-extension Disk {
-    var flipped: Disk {
-        switch self {
-        case .dark: return .light
-        case .light: return .dark
         }
     }
 }

@@ -29,4 +29,11 @@ extension Disk {
         case .light: return 1
         }
     }
+
+    var flipped: Disk {
+        switch self {
+        case .dark: return .light
+        case .light: return .dark
+        }
+    }
 }

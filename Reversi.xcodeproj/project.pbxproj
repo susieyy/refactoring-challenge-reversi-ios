@@ -25,7 +25,6 @@
 		AA308D85243F3B440041763B /* ReSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA308D84243F3B440041763B /* ReSwift */; };
 		AA308D87243F3B5B0041763B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D86243F3B5B0041763B /* AppState.swift */; };
 		AA308D8B243F40CE0041763B /* ViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = AA308D89243F40CE0041763B /* ViewController.xib */; };
-		AA34F620243F4F7D002C870C /* ReSwift-Thunk in Frameworks */ = {isa = PBXBuildFile; productRef = AA34F61F243F4F7D002C870C /* ReSwift-Thunk */; };
 		D636B39F23D35043007F370F /* DiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636B39E23D35043007F370F /* DiskView.swift */; };
 		D642BDB423A9FE4500396732 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D642BDB323A9FE4500396732 /* AppDelegate.swift */; };
 		D642BDB623A9FE4500396732 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D642BDB523A9FE4500396732 /* SceneDelegate.swift */; };
@@ -121,7 +120,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA34F620243F4F7D002C870C /* ReSwift-Thunk in Frameworks */,
 				AA308D85243F3B440041763B /* ReSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -283,7 +281,6 @@
 			name = Logic;
 			packageProductDependencies = (
 				AA308D84243F3B440041763B /* ReSwift */,
-				AA34F61F243F4F7D002C870C /* ReSwift-Thunk */,
 			);
 			productName = Logic;
 			productReference = AA308D48243F1F140041763B /* Logic.framework */;
@@ -384,7 +381,6 @@
 			mainGroup = D642BDA723A9FE4500396732;
 			packageReferences = (
 				AA308D80243F3B280041763B /* XCRemoteSwiftPackageReference "ReSwift" */,
-				AA34F61C243F4F2B002C870C /* XCRemoteSwiftPackageReference "ReSwift-Thunk" */,
 			);
 			productRefGroup = D642BDB123A9FE4500396732 /* Products */;
 			projectDirPath = "";
@@ -858,14 +854,6 @@
 				minimumVersion = 5.0.0;
 			};
 		};
-		AA34F61C243F4F2B002C870C /* XCRemoteSwiftPackageReference "ReSwift-Thunk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ReSwift/ReSwift-Thunk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -873,11 +861,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA308D80243F3B280041763B /* XCRemoteSwiftPackageReference "ReSwift" */;
 			productName = ReSwift;
-		};
-		AA34F61F243F4F7D002C870C /* ReSwift-Thunk */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA34F61C243F4F2B002C870C /* XCRemoteSwiftPackageReference "ReSwift-Thunk" */;
-			productName = "ReSwift-Thunk";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

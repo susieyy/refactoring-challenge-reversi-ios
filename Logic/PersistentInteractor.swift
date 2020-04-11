@@ -1,6 +1,6 @@
 import Foundation
 
-struct LoadData {
+public struct LoadData {
     let side: Disk?
     let players: [Player]
     let squares: [(disk: Disk?, x: Int, y: Int)]
@@ -13,7 +13,7 @@ protocol PersistentInteractor {
 
 private let defaultPath = (NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true).first! as NSString).appendingPathComponent("Game")
 
-class PersistentInteractorImpl: PersistentInteractor {
+struct PersistentInteractorImpl: PersistentInteractor {
     enum PersistentError: Error {
         case parse(path: String, cause: Error?)
     }

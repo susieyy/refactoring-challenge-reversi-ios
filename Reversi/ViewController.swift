@@ -103,10 +103,6 @@ extension ViewController {
         store.dispatch(AppAction.waitForPlayer())
     }
     
-    func playTurnOfComputer() {
-        store.dispatch(AppAction.playTurnOfComputer())
-    }
-
     func placeDisk(disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
         store.dispatch(AppAction.placeDisk(disk: disk, x: x, y: y))
     }
@@ -114,12 +110,6 @@ extension ViewController {
     func changePlayer(side: Disk, player: Player) {
         store.dispatch(AppAction.changePlayer(side: side, player: player))
         animationState.cancel(at: side)
-
-        // FIXME:
-        // if !animationState.isAnimating && reversiState.canPlayTurnOfComputer(at: side) {
-        //    playTurnOfComputer()
-        //}
-        // playTurnOfComputer()
     }
 }
 

@@ -10,13 +10,4 @@ public enum CurrentTurn: Equatable {
     case turn(Turn)
     case gameOverWon(Turn)
     case gameOverTied
-
-    var isGameOver: Bool {
-        switch self {
-        case .gameOverWon, .gameOverTied:
-            return true
-        case .start, .turn:
-            return false
-        }
-    }
 }

@@ -44,12 +44,15 @@ public struct AppState: StateType {
     let persistentInteractor: PersistentInteractor
     var boardState: BoardState = .init()
     var side: Disk? = .dark
+    public var isStaring: Bool = false
     public var player1: PlayerState
     public var player2: PlayerState
     public var squareStates: SquareStates = .init(lastPlacedSquare: nil, lastChangedSquares: [], squareStates: [], animated: false)
     public var computerThinking: ComputerThinking = .none
     public var currentTurn: CurrentTurn {
-        if let side = side {
+        if isStaring {
+            return CurrentTurn.start
+        } else if let side = side {
             let player = self.player(at: side)
             return CurrentTurn.turn(Turn(side: side, player: player))
         } else {
@@ -79,6 +82,7 @@ public struct AppState: StateType {
 
 func reducer(action: Action, state: AppState?) -> AppState {
     var state = state ?? .init()
+    state.isStaring = false
 
     if let action = action as? AppAction {
         switch action {
@@ -109,6 +113,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
                 state.boardState.setDisk($0.disk, atX: $0.x, y: $0.y)
             }
         case .nextTurn:
+            guard state.shouldShowCannotPlaceDisk == nil else { return state }
             guard let temp = state.side else { return state }
             let side = temp.flipped
             state.side = side
@@ -126,8 +131,6 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
         case .didShowCannotPlaceDisk:
             state.shouldShowCannotPlaceDisk = nil
-        case .gameOver:
-            state.side = nil
         }
     }
     if let action = action as? AppPrivateAction {
@@ -152,6 +155,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
                 lastChangedSquares: [],
                 squareStates: state.boardState.squareStates,
                 animated: false)
+            state.isStaring = true
 
          case .startComputerThinking(let side):
             state.computerThinking = .thinking(side)
@@ -165,7 +169,6 @@ func reducer(action: Action, state: AppState?) -> AppState {
 extension BoardState {
     static func reducer(action: Action, state: BoardState) -> BoardState {
         var state = state
-
         if let action = action as? AppPrivateAction {
              switch action {
              case .finisedLoadGame(let loadData):
@@ -210,7 +213,6 @@ public enum AppAction: Action {
     case placeDisk(disk: Disk, x: Int, y: Int)
     case changeSquares([SquareState])
     case nextTurn
-    case gameOver
     case didShowCannotPlaceDisk
 }
 
@@ -263,6 +265,9 @@ extension AppAction {
 
     public static func changePlayer(side: Disk, player: Player) -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState in
+            if case .manual = player {
+                dispatch(AppPrivateAction.endComputerThinking)
+            }
             dispatch(AppPrivateAction.changePlayer(side: side, player: player))
             dispatch(AppAction.saveGame())
         }
@@ -272,6 +277,8 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState in
             guard let state = getState() else { return }
             switch state.currentTurn {
+            case .start:
+                break
             case .turn(let turn):
                 let candidates = state.boardState.validMoves(for: turn.side)
                 if candidates.isEmpty {
@@ -280,20 +287,34 @@ extension AppAction {
                 }
                 guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
                 let side = turn.side
-//                let cleanUp: Canceller.CleanUp = { [weak self] in
-//                    self?.playerActivityIndicators[side.index].stopAnimating()
-//                }
-///                let canceller = animationState.createAnimationCanceller(at: side, cleanUp: cleanUp)
                 store.dispatch(AppPrivateAction.startComputerThinking(side))
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-//                    if canceller.isCancelled { return }
-//                    canceller.cancel()
-
-                    store.dispatch(AppPrivateAction.endComputerThinking) // FIXME:
-                    store.dispatch(AppAction.placeDisk(disk: side, x: x, y: y))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
+                    guard let appState = getState() else { return }
+                    guard case .thinking = appState.computerThinking else { return }
+                    dispatch(AppAction.placeDisk(disk: side, x: x, y: y))
+                    dispatch(AppPrivateAction.endComputerThinking)
                 }
             case .gameOverWon, .gameOverTied:
                 preconditionFailure()
+            }
+        }
+    }
+
+    public static func waitForPlayer() -> Thunk<AppState> {
+        return Thunk<AppState> { dispatch, getState in
+            guard let state = getState() else { return }
+            switch state.currentTurn {
+            case .start:
+                break
+            case .turn(let turn):
+                switch turn.player {
+                case .manual:
+                    break
+                case .computer:
+                    dispatch(AppAction.playTurnOfComputer())
+                }
+            case .gameOverWon, .gameOverTied:
+                break
             }
         }
     }

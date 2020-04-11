@@ -21,7 +21,6 @@ final class BoardState {
 
     init() {
         squareStates = (0 ..< BoardConstant.squaresCount).map { i in SquareState(x: i % BoardConstant.width, y: Int(i / BoardConstant.width)) }
-        dump(squareStates)
     }
 
     func setDisk(_ disk: Disk?, atX x: Int, y: Int) {

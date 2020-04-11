@@ -36,14 +36,6 @@ class ViewController: UIViewController, StoreSubscriber {
         loadGame()
     }
 
-    private var viewHasAppeared: Bool = false
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        if viewHasAppeared { return }
-        viewHasAppeared = true
-        waitForPlayer()
-    }
-
     func newState(state: AppState) {
         updatePlayerControls(state.player1)
         updatePlayerControls(state.player2)
@@ -54,8 +46,8 @@ class ViewController: UIViewController, StoreSubscriber {
 
     private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
         switch $0 {
-        case .turn:
-            break
+        case .start, .turn:
+            self.waitForPlayer()
         case .gameOverTied, .gameOverWon:
             break
         }
@@ -108,17 +100,7 @@ extension ViewController {
     }
 
     func waitForPlayer() {
-        switch store.state.currentTurn {
-        case .turn(let turn):
-            switch turn.player {
-            case .manual:
-                break
-            case .computer:
-                playTurnOfComputer()
-            }
-        case .gameOverWon, .gameOverTied:
-            gameOver()
-        }
+        store.dispatch(AppAction.waitForPlayer())
     }
     
     func playTurnOfComputer() {
@@ -137,11 +119,7 @@ extension ViewController {
         // if !animationState.isAnimating && reversiState.canPlayTurnOfComputer(at: side) {
         //    playTurnOfComputer()
         //}
-        playTurnOfComputer()
-    }
-
-    func gameOver() {
-        store.dispatch(AppAction.gameOver)
+        // playTurnOfComputer()
     }
 }
 
@@ -212,6 +190,8 @@ extension ViewController {
     
     func updateMessageViews(currentTurn: CurrentTurn) {
         switch currentTurn {
+        case .start:
+            break
         case .turn(let turn):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = turn.side

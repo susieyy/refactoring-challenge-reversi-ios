@@ -1,6 +1,6 @@
 import Foundation
 
-public class SquareState: Equatable {
+public class Square: Equatable {
     public var disk: Disk?
     public var x: Int
     public var y: Int
@@ -11,16 +11,20 @@ public class SquareState: Equatable {
         self.y = y
     }
 
-    public static func == (lhs: SquareState, rhs: SquareState) -> Bool {
+    public static func == (lhs: Square, rhs: Square) -> Bool {
         lhs.disk == rhs.disk && lhs.x == rhs.x && lhs.y == rhs.y
     }
 }
 
 final class BoardState {
-    var squareStates: [SquareState]
+    var squares: [Square]
 
-    init() {
-        squareStates = (0 ..< BoardConstant.squaresCount).map { i in SquareState(x: i % BoardConstant.width, y: Int(i / BoardConstant.width)) }
+    init(squares: [Square]? = nil) {
+        if let squares = squares {
+            self.squares = squares
+        } else {
+            self.squares = (0 ..< BoardConstant.squaresCount).map { i in Square(x: i % BoardConstant.width, y: Int(i / BoardConstant.width)) }
+        }
     }
 
     func setDisk(_ disk: Disk?, atX x: Int, y: Int) {
@@ -44,9 +48,9 @@ final class BoardState {
         setDisk(.light, atX: BoardConstant.width / 2, y: BoardConstant.height / 2)
     }
 
-    private func squareStateAt(x: Int, y: Int) -> SquareState? {
+    private func squareStateAt(x: Int, y: Int) -> Square? {
         guard BoardConstant.xRange.contains(x) && BoardConstant.yRange.contains(y) else { return nil }
-        return squareStates[y * BoardConstant.width + x]
+        return squares[y * BoardConstant.width + x]
     }
 
     func diskAt(x: Int, y: Int) -> Disk? {

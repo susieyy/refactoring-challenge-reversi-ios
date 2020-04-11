@@ -2,12 +2,13 @@ import Foundation
 
 public struct LoadData {
     let side: Disk?
-    let players: [Player]
+    let player1: Player
+    let player2: Player
     let squares: [(disk: Disk?, x: Int, y: Int)]
 }
 
 protocol PersistentInteractor {
-    func saveGame(side: Disk?, playersState: PlayersState, boardState: BoardState) throws /* FileIOError */
+    func saveGame(side: Disk?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws /* FileIOError */
     func loadGame() throws -> LoadData /* FileIOError, PersistentError */
 }
 
@@ -26,8 +27,8 @@ struct PersistentInteractorImpl: PersistentInteractor {
         self.repository = repository
     }
 
-    func saveGame(side: Disk?, playersState: PlayersState, boardState: BoardState) throws {
-        let data = createSaveData(side: side, playersState: playersState, boardState: boardState)
+    func saveGame(side: Disk?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws {
+        let data = createSaveData(side: side, player1: player1, player2: player2, boardState: boardState)
         try repository.saveData(path: path, data: data)
     }
 
@@ -36,13 +37,11 @@ struct PersistentInteractorImpl: PersistentInteractor {
         return try parseLoadData(lines: lines)
     }
 
-    func createSaveData(side: Disk?, playersState: PlayersState, boardState: BoardState) -> String {
+    func createSaveData(side: Disk?, player1: PlayerState, player2: PlayerState, boardState: BoardState) -> String {
         var output: String = ""
         output += side.symbol
-
-        for side in Disk.sides {
-            output += playersState.player(at: side).index.description
-        }
+        output += player1.player.index.description
+        output += player2.player.index.description
         output += "\n"
 
         for y in BoardConstant.yRange {
@@ -110,7 +109,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
             }
         }
 
-        return LoadData(side: side, players: players, squares: squares)
+        return LoadData(side: side, player1: players[0], player2: players[1], squares: squares)
     }
 }
 

@@ -32,7 +32,7 @@ class ViewController: UIViewController, StoreSubscriber {
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
-        store.subscribe(subscriberLastChangedSquareStates) { appState in appState.select { $0.squareStates }.skipRepeats() }
+        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.squareStates }.skipRepeats() }
         loadGame()
     }
 
@@ -52,7 +52,7 @@ class ViewController: UIViewController, StoreSubscriber {
             break
         }
     }
-    private lazy var subscriberLastChangedSquareStates = BlockSubscriber<SquareStates>() { [unowned self] in
+    private lazy var subscriberSquareStates = BlockSubscriber<SquareStates>() { [unowned self] in
         switch $0.animated {
         case false:
             self.updateDisksForInitial($0.squareStates)
@@ -64,7 +64,7 @@ class ViewController: UIViewController, StoreSubscriber {
             }
         }
     }
-    private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
+    private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinkingState>() { [unowned self] in
         switch $0 {
         case .thinking(let side):
             self.playerActivityIndicators[side.index].startAnimating()
@@ -75,7 +75,6 @@ class ViewController: UIViewController, StoreSubscriber {
     private lazy var subscriberShouldShowCannotPlaceDisk = BlockSubscriber<Trigger?>() { [unowned self] in
         if $0 == nil { return }
         self.showCannotPlaceDiskAlert()
-        self.store.dispatch(AppAction.didShowCannotPlaceDisk)
     }
 }
 
@@ -117,7 +116,7 @@ extension ViewController {
 
 extension ViewController {
     /* Board */
-    func updateDisksForInitial(_ squareStates: [SquareState]) {
+    func updateDisksForInitial(_ squareStates: [Square]) {
         squareStates.forEach {
             boardView.updateDisk($0.disk, atX: $0.x, y: $0.y, animated: false)
         }
@@ -211,6 +210,7 @@ extension ViewController {
             preferredStyle: .alert
         )
         alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
+            self?.store.dispatch(AppAction.didShowCannotPlaceDisk)
             self?.nextTurn()
         })
         present(alertController, animated: true)

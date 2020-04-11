@@ -18,7 +18,6 @@
 		AA308D74243F1F700041763B /* Canceller.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D6F243F1F700041763B /* Canceller.swift */; };
 		AA308D75243F1F700041763B /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D70243F1F700041763B /* Player.swift */; };
 		AA308D7B243F1FA30041763B /* AnimationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D76243F1FA30041763B /* AnimationState.swift */; };
-		AA308D7C243F1FA30041763B /* ReversiState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D77243F1FA30041763B /* ReversiState.swift */; };
 		AA308D7D243F1FA30041763B /* BoardState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D78243F1FA30041763B /* BoardState.swift */; };
 		AA308D7E243F1FA30041763B /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D79243F1FA30041763B /* Repository.swift */; };
 		AA308D7F243F1FA30041763B /* PersistentInteractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D7A243F1FA30041763B /* PersistentInteractor.swift */; };
@@ -94,7 +93,6 @@
 		AA308D6F243F1F700041763B /* Canceller.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Canceller.swift; sourceTree = "<group>"; };
 		AA308D70243F1F700041763B /* Player.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
 		AA308D76243F1FA30041763B /* AnimationState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimationState.swift; sourceTree = "<group>"; };
-		AA308D77243F1FA30041763B /* ReversiState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReversiState.swift; sourceTree = "<group>"; };
 		AA308D78243F1FA30041763B /* BoardState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoardState.swift; sourceTree = "<group>"; };
 		AA308D79243F1FA30041763B /* Repository.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		AA308D7A243F1FA30041763B /* PersistentInteractor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersistentInteractor.swift; sourceTree = "<group>"; };
@@ -158,7 +156,6 @@
 				AA308D78243F1FA30041763B /* BoardState.swift */,
 				AA308D7A243F1FA30041763B /* PersistentInteractor.swift */,
 				AA308D79243F1FA30041763B /* Repository.swift */,
-				AA308D77243F1FA30041763B /* ReversiState.swift */,
 				AA308D6B243F1F700041763B /* DataTypes */,
 				AA308D4A243F1F140041763B /* Logic.h */,
 				AA308D4B243F1F140041763B /* Info.plist */,
@@ -442,7 +439,6 @@
 				AA308D87243F3B5B0041763B /* AppState.swift in Sources */,
 				AA308D75243F1F700041763B /* Player.swift in Sources */,
 				AA308D74243F1F700041763B /* Canceller.swift in Sources */,
-				AA308D7C243F1FA30041763B /* ReversiState.swift in Sources */,
 				AA308D7E243F1FA30041763B /* Repository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

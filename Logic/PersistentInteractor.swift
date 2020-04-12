@@ -46,7 +46,8 @@ struct PersistentInteractorImpl: PersistentInteractor {
 
         for y in BoardConstant.yRange {
             for x in BoardConstant.xRange {
-                output += boardState.diskAt(x: x, y: y).symbol
+                let disk: Disk? = boardState.squareAt(x: x, y: y)?.disk
+                output += disk.symbol
             }
             output += "\n"
         }

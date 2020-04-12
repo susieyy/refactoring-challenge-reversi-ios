@@ -32,7 +32,7 @@ class ViewController: UIViewController, StoreSubscriber {
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
-        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.squareStates }.skipRepeats() }
+        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.squaresState }.skipRepeats() }
         loadGame()
     }
 
@@ -52,19 +52,19 @@ class ViewController: UIViewController, StoreSubscriber {
             break
         }
     }
-    private lazy var subscriberSquareStates = BlockSubscriber<SquareStates>() { [unowned self] in
+    private lazy var subscriberSquareStates = BlockSubscriber<SquaresState>() { [unowned self] in
         switch $0.animated {
         case false:
-            self.updateDisksForInitial($0.squareStates)
+            self.updateDisksForInitial($0.squares)
         case true:
-            guard let s = $0.lastPlacedSquare else { return }
-            let diskCoordinates: [(Int, Int)] = $0.lastChangedSquares.map { ($0.x, $0.y) }
+            guard let s = $0.placedSquare else { return }
+            let diskCoordinates: [(Int, Int)] = $0.changedSquares.map { ($0.x, $0.y) }
             self.updateDisks(s.disk, atX: s.x, y: s.y, diskCoordinates: diskCoordinates, animated: true) { [weak self] _ in
                 self?.nextTurn()
             }
         }
     }
-    private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinkingState>() { [unowned self] in
+    private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
         switch $0 {
         case .thinking(let side):
             self.playerActivityIndicators[side.index].startAnimating()

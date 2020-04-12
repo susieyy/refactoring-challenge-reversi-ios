@@ -46,7 +46,10 @@ class ViewController: UIViewController, StoreSubscriber {
 
     private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
         switch $0 {
-        case .start, .turn:
+        case .start:
+            self.animationState.cancelAll()
+            self.waitForPlayer()
+        case .turn:
             self.waitForPlayer()
         case .gameOverTied, .gameOverWon:
             break
@@ -123,6 +126,7 @@ extension ViewController {
     }
 
     func updateDisks(_ disk: Disk, atX x: Int, y: Int, diskCoordinates: [(Int, Int)], animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+        print("updateDisks \(disk)")
         if isAnimated {
             animationState.createAnimationCanceller()
             updateDisksWithAnimation(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] finished in

@@ -23,6 +23,7 @@ public struct AppState: StateType {
     }
     public var shouldShowCannotPlaceDisk: Trigger?
 
+    var id: String = NSUUID().uuidString
     var boardState: BoardState = .init()
     var side: Disk? = .dark
     var isStaring: Bool = false
@@ -113,6 +114,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
             ]
             boardState.updateByPartialSquares(squares)
 
+            state.id = NSUUID().uuidString
             state.isStaring = true
             state.side = .dark
             state.boardState = boardState
@@ -203,7 +205,6 @@ struct BoardState {
     }
 }
 
-/* Board logics */
 extension BoardState {
     func sideWithMoreDisks() -> Disk? {
         let darkCount = count(of: .dark)
@@ -344,8 +345,12 @@ extension AppAction {
 
     public static func changePlayer(side: Disk, player: Player) -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            guard let appSate = getState() else { return }
             if case .manual = player {
-                dispatch(AppPrivateAction.endComputerThinking)
+                guard case .turn(let turn) = appSate.currentTurn else { return }
+                if side == turn.side {
+                    dispatch(AppPrivateAction.endComputerThinking)
+                }
             }
             dispatch(AppPrivateAction.changePlayer(side: side, player: player))
             dispatch(AppAction.saveGame())
@@ -385,10 +390,12 @@ extension AppAction {
                 }
                 guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
                 let side = turn.side
+                let id = state.id
                 store.dispatch(AppPrivateAction.startComputerThinking(side))
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
                     guard let appState = getState() else { return }
                     guard case .thinking = appState.computerThinking else { return }
+                    guard id == appState.id else { return }
                     dispatch(AppAction.placeDisk(disk: side, x: x, y: y))
                     dispatch(AppPrivateAction.endComputerThinking)
                 }

@@ -14,7 +14,7 @@ public struct AppState: StateType, Codable {
             case .sideDark: return CurrentTurn.turn(playerDark)
             case .sideLight: return CurrentTurn.turn(playerLight)
             }
-        } else if let winnerSide = boardState.sideWithMoreDisks() {
+        } else if let winnerSide = boardState.squaresState.sideWithMoreDisks() {
             switch winnerSide {
             case .sideDark: return CurrentTurn.gameOverWon(playerDark)
             case .sideLight: return CurrentTurn.gameOverWon(playerLight)
@@ -45,42 +45,42 @@ func reducer(action: Action, state: AppState?) -> AppState {
     if let action = action as? AppAction {
         switch action {
         case .placeDisk(let disk, let x, let y):
-            let diskCoordinates = state.boardState.flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
+            let diskCoordinates = state.boardState.squaresState.flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
             guard !diskCoordinates.isEmpty else { return state }
             let squares = [Square(disk: disk, x: x, y: y)] + diskCoordinates.map {
                 Square(disk: disk, x: $0.0, y: $0.1)
             }
-            state.boardState.updateByPartialSquares(squares)
+            state.boardState.squaresState.updateByPartialSquares(squares)
 
             let placedSquare = PlacedSquare(disk: disk, x: x, y: y)
             let changedSquares = diskCoordinates.map {
                 PlacedSquare(disk: disk, x: $0.0, y: $0.1)
             }
             state.boardState = .init(
+                squaresState: state.boardState.squaresState,
                 placedSquare: placedSquare,
                 changedSquares: changedSquares,
-                squares: state.boardState.squares,
                 animated: true)
             do {
                 var player = state.playerDark
-                player.count = state.boardState.count(of: .diskDark)
+                player.count = state.boardState.squaresState.count(of: .diskDark)
                 state.playerDark = player
             }
             do {
                 var player = state.playerLight
-                player.count = state.boardState.count(of: .diskLight)
+                player.count = state.boardState.squaresState.count(of: .diskLight)
                 state.playerLight = player
             }
         case .changeSquares(let squares):
-            state.boardState.updateByPartialSquares(squares)
+            state.boardState.squaresState.updateByPartialSquares(squares)
         case .nextTurn:
             guard state.shouldShowCannotPlaceDisk == nil else { return state }
             guard state.isShowingRestConfrmation == false else { return state }
             guard let temp = state.side else { return state }
             let side = temp.flipped
             state.side = side
-            if state.boardState.validMoves(for: side).isEmpty {
-                if state.boardState.validMoves(for: side.flipped).isEmpty {
+            if state.boardState.squaresState.validMoves(for: side).isEmpty {
+                if state.boardState.squaresState.validMoves(for: side.flipped).isEmpty {
                     state.side = nil // GameOver
                 } else {
                     state.shouldShowCannotPlaceDisk = .init()
@@ -103,15 +103,15 @@ func reducer(action: Action, state: AppState?) -> AppState {
             var newState = AppState()
             newState.isStaring = true
             newState.boardState = .init()
-            newState.playerDark = .init(side: .sideDark, count: newState.boardState.count(of: .diskDark))
-            newState.playerLight = .init(side: .sideLight, count: newState.boardState.count(of: .diskLight))
+            newState.playerDark = .init(side: .sideDark, count: newState.boardState.squaresState.count(of: .diskDark))
+            newState.playerLight = .init(side: .sideLight, count: newState.boardState.squaresState.count(of: .diskLight))
             return newState
          case .finisedLoadGame(let loadData):
             var newState = AppState()
             newState.side = loadData.side
-            newState.boardState = .init(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) })
-            newState.playerDark = .init(player: loadData.player1, side: .sideDark, count: newState.boardState.count(of: .diskDark))
-            newState.playerLight = .init(player: loadData.player2, side: .sideLight, count: newState.boardState.count(of: .diskLight))
+            newState.boardState = .init(squaresState: SquaresState(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) }))
+            newState.playerDark = .init(player: loadData.player1, side: .sideDark, count: newState.boardState.squaresState.count(of: .diskDark))
+            newState.playerLight = .init(player: loadData.player2, side: .sideLight, count: newState.boardState.squaresState.count(of: .diskLight))
             return newState
          case .finisedSaveGame:
             break
@@ -146,25 +146,6 @@ public struct Square: Equatable, Codable {
     var index: Int { y * BoardConstant.width + x }
 }
 
-public struct BoardState: StateType, Equatable, Codable {
-    public var placedSquare: PlacedSquare?
-    public var changedSquares: [PlacedSquare]
-    public var squares: [Square]
-    public var animated: Bool
-
-    init(placedSquare: PlacedSquare? = nil, changedSquares: [PlacedSquare] = [], squares: [Square]? = boardStateInital, animated: Bool = false) {
-        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
-            Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
-        }
-        squares?.forEach { temp[$0.index] = $0 }
-        self.squares = temp
-        self.placedSquare = placedSquare
-        self.squares = temp
-        self.animated = animated
-        self.changedSquares = []
-    }
-}
-
 public struct PlayerSide: StateType, Equatable, Codable {
     public var player: Player = .manual
     public var side: Side
@@ -178,7 +159,34 @@ let boardStateInital: [Square] = [
     .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
 ]
 
-extension BoardState {
+public struct BoardState: StateType, Equatable, Codable {
+    var squaresState: SquaresState
+    public var squares: [Square] { squaresState.squares }
+    public var placedSquare: PlacedSquare?
+    public var changedSquares: [PlacedSquare]
+    public var animated: Bool
+
+    init(squaresState: SquaresState = .init(), placedSquare: PlacedSquare? = nil, changedSquares: [PlacedSquare] = [], animated: Bool = false) {
+        self.squaresState = squaresState
+        self.placedSquare = placedSquare
+        self.animated = animated
+        self.changedSquares = []
+    }
+}
+
+public struct SquaresState: StateType, Equatable, Codable {
+    public var squares: [Square]
+
+    init(squares: [Square] = boardStateInital) {
+        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
+            Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
+        }
+        squares.forEach { temp[$0.index] = $0 }
+        self.squares = temp
+    }
+}
+
+extension SquaresState {
     mutating func updateByPartialSquares(_ partialSquares: [Square]) {
         var origin = self.squares
         partialSquares.forEach { origin[$0.index] = $0 }
@@ -203,7 +211,7 @@ extension BoardState {
     }
 }
 
-extension BoardState {
+extension SquaresState {
     func sideWithMoreDisks() -> Side? {
         let darkCount = count(of: .diskDark)
         let lightCount = count(of: .diskLight)
@@ -318,7 +326,7 @@ extension AppAction {
                     side: state.side,
                     player1: state.playerDark,
                     player2: state.playerLight,
-                    boardState: state.boardState)
+                    squaresState: state.boardState.squaresState)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
                 dump(error)
@@ -382,7 +390,7 @@ extension AppAction {
             case .start:
                 break
             case .turn(let turn):
-                let candidates = state.boardState.validMoves(for: turn.side)
+                let candidates = state.boardState.squaresState.validMoves(for: turn.side)
                 if candidates.isEmpty {
                     dispatch(AppAction.nextTurn)
                     return

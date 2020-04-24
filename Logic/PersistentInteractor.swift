@@ -8,7 +8,7 @@ public struct LoadData {
 }
 
 protocol PersistentInteractor {
-    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, boardState: BoardState) throws /* FileIOError */
+    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, squaresState: SquaresState) throws /* FileIOError */
     func loadGame() throws -> LoadData /* FileIOError, PersistentError */
 }
 
@@ -27,8 +27,8 @@ struct PersistentInteractorImpl: PersistentInteractor {
         self.repository = repository
     }
 
-    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, boardState: BoardState) throws {
-        let data = createSaveData(side: side, player1: player1, player2: player2, boardState: boardState)
+    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, squaresState: SquaresState) throws {
+        let data = createSaveData(side: side, player1: player1, player2: player2, squaresState: squaresState)
         try repository.saveData(path: path, data: data)
     }
 
@@ -37,7 +37,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
         return try parseLoadData(lines: lines)
     }
 
-    func createSaveData(side: Side?, player1: PlayerSide, player2: PlayerSide, boardState: BoardState) -> String {
+    func createSaveData(side: Side?, player1: PlayerSide, player2: PlayerSide, squaresState: SquaresState) -> String {
         var output: String = ""
         output += side.symbol
         output += player1.player.rawValue.description
@@ -46,7 +46,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
 
         for y in BoardConstant.yRange {
             for x in BoardConstant.xRange {
-                let disk: Disk? = boardState.squareAt(x: x, y: y)?.disk
+                let disk: Disk? = squaresState.squareAt(x: x, y: y)?.disk
                 output += disk.symbol
             }
             output += "\n"

@@ -8,7 +8,7 @@ public struct LoadData {
 }
 
 protocol PersistentInteractor {
-    func saveGame(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws /* FileIOError */
+    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, boardState: BoardState) throws /* FileIOError */
     func loadGame() throws -> LoadData /* FileIOError, PersistentError */
 }
 
@@ -27,7 +27,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
         self.repository = repository
     }
 
-    func saveGame(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws {
+    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, boardState: BoardState) throws {
         let data = createSaveData(side: side, player1: player1, player2: player2, boardState: boardState)
         try repository.saveData(path: path, data: data)
     }
@@ -37,7 +37,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
         return try parseLoadData(lines: lines)
     }
 
-    func createSaveData(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) -> String {
+    func createSaveData(side: Side?, player1: PlayerSide, player2: PlayerSide, boardState: BoardState) -> String {
         var output: String = ""
         output += side.symbol
         output += player1.player.rawValue.description
@@ -119,9 +119,9 @@ extension Optional where Wrapped == Disk {
     fileprivate init?<S: StringProtocol>(symbol: S) {
         switch symbol {
         case "x":
-            self = .some(.dark)
+            self = .some(.diskDark)
         case "o":
-            self = .some(.light)
+            self = .some(.diskLight)
         case "-":
             self = .none
         default:
@@ -131,9 +131,9 @@ extension Optional where Wrapped == Disk {
 
     fileprivate var symbol: String {
         switch self {
-        case .some(.dark):
+        case .some(.diskDark):
             return "x"
-        case .some(.light):
+        case .some(.diskLight):
             return "o"
         case .none:
             return "-"

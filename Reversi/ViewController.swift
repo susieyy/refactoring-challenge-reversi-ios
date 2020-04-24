@@ -37,10 +37,10 @@ class ViewController: UIViewController, StoreSubscriber {
     }
 
     func newState(state: AppState) {
-        updatePlayerControls(state.player1)
-        updatePlayerControls(state.player2)
-        updateCountLabels(state.player1)
-        updateCountLabels(state.player2)
+        updatePlayerControls(state.playerDark)
+        updatePlayerControls(state.playerLight)
+        updateCountLabels(state.playerDark)
+        updateCountLabels(state.playerLight)
         updateMessageViews(currentTurn: state.currentTurn)
     }
 
@@ -172,11 +172,11 @@ extension ViewController {
     }
 
     /* Game */
-    func updatePlayerControls(_ playerState: PlayerState) {
+    func updatePlayerControls(_ playerState: PlayerSide) {
         playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.rawValue
     }
 
-    func updateCountLabels(_ playerState: PlayerState) {
+    func updateCountLabels(_ playerState: PlayerSide) {
         countLabels[playerState.side.index].text = "\(playerState.count)"
     }
     
@@ -274,8 +274,8 @@ extension UISegmentedControl {
 extension Disk {
     var name: String {
         switch self {
-        case .dark: return "dark"
-        case .light: return "light"
+        case .diskDark: return "dark"
+        case .diskLight: return "light"
         }
     }
 }

@@ -2,23 +2,25 @@ import Foundation
 import ReSwift
 
 public struct AppState: StateType, Codable {
-    public var player1: PlayerState = .init(side: .sideDark)
-    public var player2: PlayerState = .init(side: .sideLight)
+    public var playerDark: PlayerSide = .init(side: .sideDark)
+    public var playerLight: PlayerSide = .init(side: .sideLight)
     public var squaresState: SquaresState = .init()
     public var computerThinking: ComputerThinking = .none
     public var currentTurn: CurrentTurn {
         if isStaring {
             return CurrentTurn.start
         } else if let side = side {
-            let player = self.player(at: side)
-            return CurrentTurn.turn(Turn(side: side, player: player))
-        } else {
-            if let winner = boardState.sideWithMoreDisks() {
-                let player = self.player(at: winner)
-                return CurrentTurn.gameOverWon(Turn(side: winner, player: player))
-            } else {
-                return CurrentTurn.gameOverTied
+            switch side {
+            case .sideDark: return CurrentTurn.turn(playerDark)
+            case .sideLight: return CurrentTurn.turn(playerLight)
             }
+        } else if let winnerSide = boardState.sideWithMoreDisks() {
+            switch winnerSide {
+            case .sideDark: return CurrentTurn.gameOverWon(playerDark)
+            case .sideLight: return CurrentTurn.gameOverWon(playerLight)
+            }
+        } else {
+            return CurrentTurn.gameOverTied
         }
     }
     public var shouldShowCannotPlaceDisk: Trigger?
@@ -27,13 +29,6 @@ public struct AppState: StateType, Codable {
     var boardState: BoardState = .init()
     var side: Side? = .sideDark
     var isStaring: Bool = false
-
-    fileprivate func player(at side: Side) -> Player {
-        switch side {
-        case .sideDark: return self.player1.player
-        case .sideLight: return self.player2.player
-        }
-    }
 }
 
 func reducer(action: Action, state: AppState?) -> AppState {
@@ -67,14 +62,14 @@ func reducer(action: Action, state: AppState?) -> AppState {
                 squares: state.boardState.squares,
                 animated: true)
             do {
-                var player = state.player1
-                player.count = state.boardState.count(of: .dark)
-                state.player1 = player
+                var player = state.playerDark
+                player.count = state.boardState.count(of: .diskDark)
+                state.playerDark = player
             }
             do {
-                var player = state.player2
-                player.count = state.boardState.count(of: .light)
-                state.player2 = player
+                var player = state.playerLight
+                player.count = state.boardState.count(of: .diskLight)
+                state.playerLight = player
             }
         case .changeSquares(let squares):
             state.boardState.updateByPartialSquares(squares)
@@ -98,15 +93,15 @@ func reducer(action: Action, state: AppState?) -> AppState {
          switch action {
          case .changePlayer(let side, let player):
             switch side {
-            case .sideDark: state.player1.player = player
-            case .sideLight: state.player2.player = player
+            case .sideDark: state.playerDark.player = player
+            case .sideLight: state.playerLight.player = player
             }
          case .finisedLoadGame(let loadData):
             let boardState = BoardState(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) })
             state.isStaring = false
             state.side = loadData.side
-            state.player1 = .init(side: .sideDark, player: loadData.player1, count: boardState.count(of: .dark))
-            state.player2 = .init(side: .sideLight, player: loadData.player2, count: boardState.count(of: .light))
+            state.playerDark = .init(player: loadData.player1, side: .sideDark, count: boardState.count(of: .diskDark))
+            state.playerLight = .init(player: loadData.player2, side: .sideLight, count: boardState.count(of: .diskLight))
             state.squaresState = .init(squares: boardState.squares)
             state.boardState = boardState
          case .finisedSaveGame:
@@ -114,10 +109,10 @@ func reducer(action: Action, state: AppState?) -> AppState {
          case .resetAllState:
             var boardState = BoardState()
             let squares: [Square] = [
-                .init(disk: .light, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
-                .init(disk: .dark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
-                .init(disk: .dark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
-                .init(disk: .light, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
+                .init(disk: .diskLight, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
+                .init(disk: .diskDark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
+                .init(disk: .diskDark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
+                .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
             ]
             boardState.updateByPartialSquares(squares)
 
@@ -125,8 +120,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
             state.isStaring = true
             state.side = .sideDark
             state.boardState = boardState
-            state.player1 = .init(side: .sideDark, count: boardState.count(of: .dark))
-            state.player2 = .init(side: .sideLight, count: boardState.count(of: .light))
+            state.playerDark = .init(side: .sideDark, count: boardState.count(of: .diskDark))
+            state.playerLight = .init(side: .sideLight, count: boardState.count(of: .diskLight))
             state.squaresState = .init(squares: boardState.squares)
             state.boardState = boardState
             state.computerThinking = .none
@@ -169,9 +164,9 @@ public struct SquaresState: StateType, Equatable, Codable {
     public var animated: Bool = false
 }
 
-public struct PlayerState: StateType, Equatable, Codable {
-    public var side: Side
+public struct PlayerSide: StateType, Equatable, Codable {
     public var player: Player = .manual
+    public var side: Side
     public var count: Int = 0
 }
 
@@ -214,8 +209,8 @@ struct BoardState: StateType, Equatable, Codable {
 
 extension BoardState {
     func sideWithMoreDisks() -> Side? {
-        let darkCount = count(of: .dark)
-        let lightCount = count(of: .light)
+        let darkCount = count(of: .diskDark)
+        let lightCount = count(of: .diskLight)
         if darkCount == lightCount {
             return nil
         } else {
@@ -267,10 +262,10 @@ extension BoardState {
                 y += direction.y
 
                 switch (disk, squareAt(x: x, y: y)?.disk) { // Uses tuples to make patterns exhaustive
-                case (.dark, .some(.dark)), (.light, .some(.light)):
+                case (.diskDark, .some(.diskDark)), (.diskLight, .some(.diskLight)):
                     diskCoordinates.append(contentsOf: diskCoordinatesInLine)
                     break flipping
-                case (.dark, .some(.light)), (.light, .some(.dark)):
+                case (.diskDark, .some(.diskLight)), (.diskLight, .some(.diskDark)):
                     diskCoordinatesInLine.append((x, y))
                 case (_, .none):
                     break flipping
@@ -324,8 +319,8 @@ extension AppAction {
                 guard let state = getState() else { return }
                 try dependency.persistentInteractor.saveGame(
                     side: state.side,
-                    player1: state.player1,
-                    player2: state.player2,
+                    player1: state.playerDark,
+                    player2: state.playerLight,
                     boardState: state.boardState)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
@@ -461,7 +456,7 @@ let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
     }
 }
 
-extension ComputerThinking {
+extension ComputerThinking { /* Codable */
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let value = try? container.decode(String.self, forKey: .none), value == CodingKeys.none.rawValue {

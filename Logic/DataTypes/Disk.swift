@@ -1,6 +1,6 @@
 import Foundation
 
 public enum Disk: String, Codable {
-    case dark
-    case light
+    case diskDark
+    case diskLight
 }

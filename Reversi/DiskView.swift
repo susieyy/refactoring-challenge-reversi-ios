@@ -3,7 +3,7 @@ import Logic
 
 public class DiskView: UIView {
     /// このビューが表示するディスクの色を決定します。
-    public var disk: Disk = .dark {
+    public var disk: Disk = .diskDark {
         didSet { setNeedsDisplay() }
     }
     
@@ -38,8 +38,8 @@ public class DiskView: UIView {
 extension Disk {
     fileprivate var uiColor: UIColor {
         switch self {
-        case .dark: return UIColor(named: "DarkColor")!
-        case .light: return UIColor(named: "LightColor")!
+        case .diskDark: return UIColor(named: "DarkColor")!
+        case .diskLight: return UIColor(named: "LightColor")!
         }
     }
     
@@ -49,10 +49,10 @@ extension Disk {
        
     fileprivate init(name: String) {
         switch name {
-        case Disk.dark.name:
-            self = .dark
-        case Disk.light.name:
-            self = .light
+        case Disk.diskDark.name:
+            self = .diskDark
+        case Disk.diskLight.name:
+            self = .diskLight
         default:
             preconditionFailure("Illegal name: \(name)")
         }

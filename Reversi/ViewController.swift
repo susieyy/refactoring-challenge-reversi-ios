@@ -105,11 +105,11 @@ extension ViewController {
         store.dispatch(AppAction.waitForPlayer())
     }
     
-    func placeDisk(disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+    func placeDisk(disk: Disk, atX x: Int, y: Int) {
         store.dispatch(AppAction.placeDisk(disk: disk, x: x, y: y))
     }
 
-    func changePlayer(side: Disk, player: Player) {
+    func changePlayer(side: Side, player: Player) {
         store.dispatch(AppAction.changePlayer(side: side, player: player))
         animationState.cancel(at: side)
     }
@@ -186,11 +186,11 @@ extension ViewController {
             break
         case .turn(let turn):
             messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = turn.side
+            messageDiskView.disk = turn.side.disk
             messageLabel.text = "'s turn"
         case .gameOverWon(let winner):
             messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = winner.side
+            messageDiskView.disk = winner.side.disk
             messageLabel.text = " won"
         case .gameOverTied:
             messageDiskSizeConstraint.constant = 0
@@ -240,10 +240,10 @@ extension ViewController {
     
     @IBAction func changePlayerControlSegment(_ sender: UISegmentedControl) {
         guard let index = playerControls.firstIndex(of: sender) else { return }
-        let side: Disk
+        let side: Side
         switch index {
-        case 0: side = .dark
-        case 1: side = .light
+        case 0: side = .sideDark
+        case 1: side = .sideLight
         default: preconditionFailure()
         }
         changePlayer(side: side, player: sender.convertToPlayer)
@@ -255,9 +255,7 @@ extension ViewController: BoardViewDelegate {
         guard case .turn(let turn) = store.state.currentTurn else { return }
         if animationState.isAnimating { return }
         guard case .manual = turn.player else { return }
-        placeDisk(disk: turn.side, atX: x, y: y, animated: true) { [weak self] _ in
-            self?.nextTurn()
-        }
+        placeDisk(disk: turn.side.disk, atX: x, y: y)
     }
 }
 

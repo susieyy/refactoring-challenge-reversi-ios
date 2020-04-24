@@ -1,14 +1,14 @@
 import Foundation
 
 public struct LoadData {
-    let side: Disk?
+    let side: Side?
     let player1: Player
     let player2: Player
     let squares: [(disk: Disk?, x: Int, y: Int)]
 }
 
 protocol PersistentInteractor {
-    func saveGame(side: Disk?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws /* FileIOError */
+    func saveGame(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws /* FileIOError */
     func loadGame() throws -> LoadData /* FileIOError, PersistentError */
 }
 
@@ -27,7 +27,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
         self.repository = repository
     }
 
-    func saveGame(side: Disk?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws {
+    func saveGame(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) throws {
         let data = createSaveData(side: side, player1: player1, player2: player2, boardState: boardState)
         try repository.saveData(path: path, data: data)
     }
@@ -37,7 +37,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
         return try parseLoadData(lines: lines)
     }
 
-    func createSaveData(side: Disk?, player1: PlayerState, player2: PlayerState, boardState: BoardState) -> String {
+    func createSaveData(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) -> String {
         var output: String = ""
         output += side.symbol
         output += player1.player.index.description
@@ -62,19 +62,19 @@ struct PersistentInteractorImpl: PersistentInteractor {
         }
 
         // side
-        let side: Disk?
+        let side: Side?
         do {
             guard
-                let diskSymbol = line.popFirst(),
-                let disk = Optional<Disk>(symbol: diskSymbol.description)
+                let sideSymbol = line.popFirst(),
+                let s = Optional<Side>(symbol: sideSymbol.description)
             else {
                 throw PersistentError.parse(path: path, cause: nil)
             }
-            side = disk
+            side = s
         }
 
         // players
-        let players: [Player] = try Disk.sides.map { _ in
+        let players: [Player] = try Side.allCases.map { _ in
             guard
                 let playerSymbol = line.popFirst(),
                 let playerNumber = Int(playerSymbol.description),
@@ -134,6 +134,32 @@ extension Optional where Wrapped == Disk {
         case .some(.dark):
             return "x"
         case .some(.light):
+            return "o"
+        case .none:
+            return "-"
+        }
+    }
+}
+
+extension Optional where Wrapped == Side {
+    fileprivate init?<S: StringProtocol>(symbol: S) {
+        switch symbol {
+        case "x":
+            self = .some(.sideDark)
+        case "o":
+            self = .some(.sideLight)
+        case "-":
+            self = .none
+        default:
+            return nil
+        }
+    }
+
+    fileprivate var symbol: String {
+        switch self {
+        case .some(.sideDark):
+            return "x"
+        case .some(.sideLight):
             return "o"
         case .none:
             return "-"

@@ -8,13 +8,13 @@ public final class AnimationState {
         return canceller.isCancelled
     }
 
-    private var playerCancellers: [Disk: Canceller] = [:]
+    private var playerCancellers: [Side: Canceller] = [:]
 
     public init() {
     }
 
     @discardableResult
-    public func createAnimationCanceller(at side: Disk? = nil, cleanUp: Canceller.CleanUp? = nil) -> Canceller {
+    public func createAnimationCanceller(at side: Side? = nil, cleanUp: Canceller.CleanUp? = nil) -> Canceller {
         switch side {
         case .some(let side):
             let cleanUpWrapper: Canceller.CleanUp = { [weak self] in
@@ -35,7 +35,7 @@ public final class AnimationState {
         }
     }
 
-    public func cancel(at side: Disk? = nil) {
+    public func cancel(at side: Side? = nil) {
         switch side {
         case .some(let side):
             playerCancellers[side]?.cancel()
@@ -48,7 +48,7 @@ public final class AnimationState {
         animationCanceller?.cancel()
         animationCanceller = nil
 
-        for side in Disk.sides {
+        for side in Side.allCases {
             playerCancellers[side]?.cancel()
             playerCancellers.removeValue(forKey: side)
         }

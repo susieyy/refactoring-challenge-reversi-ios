@@ -2,8 +2,8 @@ import Foundation
 import ReSwift
 
 public struct AppState: StateType, Codable {
-    public var player1: PlayerState = .init(side: .dark)
-    public var player2: PlayerState = .init(side: .light)
+    public var player1: PlayerState = .init(side: .sideDark)
+    public var player2: PlayerState = .init(side: .sideLight)
     public var squaresState: SquaresState = .init()
     public var computerThinking: ComputerThinking = .none
     public var currentTurn: CurrentTurn {
@@ -25,13 +25,13 @@ public struct AppState: StateType, Codable {
 
     var id: String = NSUUID().uuidString
     var boardState: BoardState = .init()
-    var side: Disk? = .dark
+    var side: Side? = .sideDark
     var isStaring: Bool = false
 
-    fileprivate func player(at side: Disk) -> Player {
+    fileprivate func player(at side: Side) -> Player {
         switch side {
-        case .dark: return self.player1.player
-        case .light: return self.player2.player
+        case .sideDark: return self.player1.player
+        case .sideLight: return self.player2.player
         }
     }
 }
@@ -98,15 +98,15 @@ func reducer(action: Action, state: AppState?) -> AppState {
          switch action {
          case .changePlayer(let side, let player):
             switch side {
-            case .dark: state.player1.player = player
-            case .light: state.player2.player = player
+            case .sideDark: state.player1.player = player
+            case .sideLight: state.player2.player = player
             }
          case .finisedLoadGame(let loadData):
             let boardState = BoardState(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) })
             state.isStaring = false
             state.side = loadData.side
-            state.player1 = .init(side: .dark, player: loadData.player1, count: boardState.count(of: .dark))
-            state.player2 = .init(side: .light, player: loadData.player2, count: boardState.count(of: .light))
+            state.player1 = .init(side: .sideDark, player: loadData.player1, count: boardState.count(of: .dark))
+            state.player2 = .init(side: .sideLight, player: loadData.player2, count: boardState.count(of: .light))
             state.squaresState = .init(squares: boardState.squares)
             state.boardState = boardState
          case .finisedSaveGame:
@@ -123,10 +123,10 @@ func reducer(action: Action, state: AppState?) -> AppState {
 
             state.id = NSUUID().uuidString
             state.isStaring = true
-            state.side = .dark
+            state.side = .sideDark
             state.boardState = boardState
-            state.player1 = .init(side: .dark, count: boardState.count(of: .dark))
-            state.player2 = .init(side: .light, count: boardState.count(of: .light))
+            state.player1 = .init(side: .sideDark, count: boardState.count(of: .dark))
+            state.player2 = .init(side: .sideLight, count: boardState.count(of: .light))
             state.squaresState = .init(squares: boardState.squares)
             state.boardState = boardState
             state.computerThinking = .none
@@ -146,7 +146,7 @@ public struct Trigger: Equatable, Codable {
 
 public enum ComputerThinking: Equatable, Codable {
     case none
-    case thinking(Disk)
+    case thinking(Side)
 }
 
 public struct PlacedSquare: Equatable, Codable {
@@ -170,7 +170,7 @@ public struct SquaresState: StateType, Equatable, Codable {
 }
 
 public struct PlayerState: StateType, Equatable, Codable {
-    public var side: Disk
+    public var side: Side
     public var player: Player = .manual
     public var count: Int = 0
 }
@@ -213,13 +213,13 @@ struct BoardState: StateType, Equatable, Codable {
 }
 
 extension BoardState {
-    func sideWithMoreDisks() -> Disk? {
+    func sideWithMoreDisks() -> Side? {
         let darkCount = count(of: .dark)
         let lightCount = count(of: .light)
         if darkCount == lightCount {
             return nil
         } else {
-            return darkCount > lightCount ? .dark : .light
+            return darkCount > lightCount ? .sideDark : .sideLight
         }
     }
 
@@ -227,11 +227,11 @@ extension BoardState {
         !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
     }
 
-    func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
+    func validMoves(for side: Side) -> [(x: Int, y: Int)] {
         var coordinates: [(Int, Int)] = []
         for y in BoardConstant.yRange {
             for x in BoardConstant.xRange {
-                if canPlaceDisk(side, atX: x, y: y) {
+                if canPlaceDisk(side.disk, atX: x, y: y) {
                     coordinates.append((x, y))
                 }
             }
@@ -302,10 +302,10 @@ public enum AppAction: Action {
 }
 
 enum AppPrivateAction: Action {
-    case changePlayer(side: Disk, player: Player)
+    case changePlayer(side: Side, player: Player)
     case resetAllState
     case finisedLoadGame(LoadData)
-    case startComputerThinking(Disk)
+    case startComputerThinking(Side)
     case endComputerThinking
     case finisedSaveGame
 }
@@ -350,7 +350,7 @@ extension AppAction {
         }
     }
 
-    public static func changePlayer(side: Disk, player: Player) -> Thunk<AppState> {
+    public static func changePlayer(side: Side, player: Player) -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
             guard let appSate = getState() else { return }
             if case .manual = player {
@@ -403,7 +403,7 @@ extension AppAction {
                     guard let appState = getState() else { return }
                     guard case .thinking = appState.computerThinking else { return }
                     guard id == appState.id else { return }
-                    dispatch(AppAction.placeDisk(disk: side, x: x, y: y))
+                    dispatch(AppAction.placeDisk(disk: side.disk, x: x, y: y))
                     dispatch(AppPrivateAction.endComputerThinking)
                 }
             case .gameOverWon, .gameOverTied:
@@ -466,7 +466,7 @@ extension ComputerThinking {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let value = try? container.decode(String.self, forKey: .none), value == CodingKeys.none.rawValue {
             self = .none
-        } else if let value = try? container.decode(Disk.self, forKey: .thinking) {
+        } else if let value = try? container.decode(Side.self, forKey: .thinking) {
             self = .thinking(value)
         } else {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Data doesn't match"))

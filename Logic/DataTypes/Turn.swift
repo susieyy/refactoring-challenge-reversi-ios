@@ -1,7 +1,7 @@
 import Foundation
 
 public struct Turn: Equatable, Codable {
-    public let side: Disk
+    public let side: Side
     public let player: Player
 }
 

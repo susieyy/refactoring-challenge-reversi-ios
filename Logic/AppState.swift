@@ -4,7 +4,7 @@ import ReSwift
 public struct AppState: StateType, Codable {
     public var playerDark: PlayerSide = .init(side: .sideDark)
     public var playerLight: PlayerSide = .init(side: .sideLight)
-    public var squaresState: SquaresState = .init()
+    public var boardState: BoardState = .init()
     public var computerThinking: ComputerThinking = .none
     public var currentTurn: CurrentTurn {
         if isStaring {
@@ -26,7 +26,6 @@ public struct AppState: StateType, Codable {
     public var shouldShowCannotPlaceDisk: Trigger?
 
     var id: String = NSUUID().uuidString
-    var boardState: BoardState = .init()
     var side: Side? = .sideDark
     var isStaring: Bool = false
 }
@@ -56,7 +55,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
             let changedSquares = diskCoordinates.map {
                 PlacedSquare(disk: disk, x: $0.0, y: $0.1)
             }
-            state.squaresState = .init(
+            state.boardState = .init(
                 placedSquare: placedSquare,
                 changedSquares: changedSquares,
                 squares: state.boardState.squares,
@@ -99,18 +98,16 @@ func reducer(action: Action, state: AppState?) -> AppState {
          case .resetAllState:
             var newState = AppState()
             newState.isStaring = true
-            newState.squaresState = .init(squares: newState.boardState.squares)
+            newState.boardState = .init()
             newState.playerDark = .init(side: .sideDark, count: newState.boardState.count(of: .diskDark))
             newState.playerLight = .init(side: .sideLight, count: newState.boardState.count(of: .diskLight))
             return newState
          case .finisedLoadGame(let loadData):
             var newState = AppState()
-            let boardState = BoardState(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) })
             newState.side = loadData.side
-            newState.squaresState = .init(squares: boardState.squares)
-            newState.playerDark = .init(player: loadData.player1, side: .sideDark, count: boardState.count(of: .diskDark))
-            newState.playerLight = .init(player: loadData.player2, side: .sideLight, count: boardState.count(of: .diskLight))
-            newState.boardState = boardState
+            newState.boardState = .init(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) })
+            newState.playerDark = .init(player: loadData.player1, side: .sideDark, count: newState.boardState.count(of: .diskDark))
+            newState.playerLight = .init(player: loadData.player2, side: .sideLight, count: newState.boardState.count(of: .diskLight))
             return newState
          case .finisedSaveGame:
             break
@@ -145,11 +142,23 @@ public struct Square: Equatable, Codable {
     var index: Int { y * BoardConstant.width + x }
 }
 
-public struct SquaresState: StateType, Equatable, Codable {
-    public var placedSquare: PlacedSquare? = nil
-    public var changedSquares: [PlacedSquare] = []
-    public var squares: [Square] = []
-    public var animated: Bool = false
+public struct BoardState: StateType, Equatable, Codable {
+    public var placedSquare: PlacedSquare?
+    public var changedSquares: [PlacedSquare]
+    public var squares: [Square]
+    public var animated: Bool
+
+    init(placedSquare: PlacedSquare? = nil, changedSquares: [PlacedSquare] = [], squares: [Square]? = boardStateInital, animated: Bool = false) {
+        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
+            Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
+        }
+        squares?.forEach { temp[$0.index] = $0 }
+        self.squares = temp
+        self.placedSquare = placedSquare
+        self.squares = temp
+        self.animated = animated
+        self.changedSquares = []
+    }
 }
 
 public struct PlayerSide: StateType, Equatable, Codable {
@@ -165,17 +174,7 @@ let boardStateInital: [Square] = [
     .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
 ]
 
-struct BoardState: StateType, Equatable, Codable {
-    var squares: [Square]
-
-    init(squares: [Square]? = boardStateInital) {
-        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
-            Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
-        }
-        squares?.forEach { temp[$0.index] = $0 }
-        self.squares = temp
-    }
-
+extension BoardState {
     mutating func updateByPartialSquares(_ partialSquares: [Square]) {
         var origin = self.squares
         partialSquares.forEach { origin[$0.index] = $0 }

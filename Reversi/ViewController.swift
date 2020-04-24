@@ -32,7 +32,7 @@ class ViewController: UIViewController, StoreSubscriber {
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
-        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.squaresState }.skipRepeats() }
+        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.boardState }.skipRepeats() }
         loadGame()
     }
 
@@ -55,7 +55,7 @@ class ViewController: UIViewController, StoreSubscriber {
             break
         }
     }
-    private lazy var subscriberSquareStates = BlockSubscriber<SquaresState>() { [unowned self] in
+    private lazy var subscriberSquareStates = BlockSubscriber<BoardState>() { [unowned self] in
         switch $0.animated {
         case false:
             self.updateDisksForInitial($0.squares)

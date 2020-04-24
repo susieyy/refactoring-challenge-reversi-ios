@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Player {
+public enum Player: String, Equatable, Codable {
     case manual
     case computer
 

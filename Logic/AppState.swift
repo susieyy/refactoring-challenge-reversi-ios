@@ -1,7 +1,7 @@
 import Foundation
 import ReSwift
 
-public struct AppState: StateType {
+public struct AppState: StateType, Codable {
     public var player1: PlayerState = .init(side: .dark)
     public var player2: PlayerState = .init(side: .light)
     public var squaresState: SquaresState = .init()
@@ -39,6 +39,13 @@ public struct AppState: StateType {
 func reducer(action: Action, state: AppState?) -> AppState {
     var state = state ?? .init()
     state.isStaring = false
+
+    let data = try! JSONEncoder().encode(state)
+    print(String(data: data, encoding: String.Encoding.utf8)!)
+
+    let decoded = try! JSONDecoder().decode(AppState.self, from: data)
+    print(decoded)
+
 
     if let action = action as? AppAction {
         switch action {
@@ -133,42 +140,42 @@ func reducer(action: Action, state: AppState?) -> AppState {
     return state
 }
 
-public struct Trigger: Equatable {
+public struct Trigger: Equatable, Codable {
     let uuid: String = NSUUID().uuidString
 }
 
-public enum ComputerThinking: Equatable {
+public enum ComputerThinking: Equatable, Codable {
     case none
     case thinking(Disk)
 }
 
-public struct PlacedSquare: Equatable {
+public struct PlacedSquare: Equatable, Codable {
     public var disk: Disk
     public var x: Int
     public var y: Int
 }
 
-public struct Square: Equatable {
+public struct Square: Equatable, Codable {
     public var disk: Disk?
     public var x: Int
     public var y: Int
     var index: Int { y * BoardConstant.width + x }
 }
 
-public struct SquaresState: StateType, Equatable {
+public struct SquaresState: StateType, Equatable, Codable {
     public var placedSquare: PlacedSquare? = nil
     public var changedSquares: [PlacedSquare] = []
     public var squares: [Square] = []
     public var animated: Bool = false
 }
 
-public struct PlayerState: StateType {
+public struct PlayerState: StateType, Equatable, Codable {
     public var side: Disk
     public var player: Player = .manual
     public var count: Int = 0
 }
 
-struct BoardState {
+struct BoardState: StateType, Equatable, Codable {
     var squares: [Square]
 
     init(squares: [Square]? = nil) {
@@ -451,5 +458,31 @@ let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
             dump(action)
             return next(action)
         }
+    }
+}
+
+extension ComputerThinking {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let value = try? container.decode(String.self, forKey: .none), value == CodingKeys.none.rawValue {
+            self = .none
+        } else if let value = try? container.decode(Disk.self, forKey: .thinking) {
+            self = .thinking(value)
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Data doesn't match"))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .none: try container.encode(CodingKeys.none.rawValue, forKey: .none)
+        case .thinking(let disk): try container.encode(disk, forKey: .thinking)
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case none
+        case thinking
     }
 }

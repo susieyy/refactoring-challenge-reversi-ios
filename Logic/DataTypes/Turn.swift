@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Turn: Equatable {
+public struct Turn: Equatable, Codable {
     public let side: Disk
     public let player: Player
 }

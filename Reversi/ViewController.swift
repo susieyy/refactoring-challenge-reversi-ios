@@ -126,7 +126,6 @@ extension ViewController {
     }
 
     func updateDisks(_ disk: Disk, atX x: Int, y: Int, diskCoordinates: [(Int, Int)], animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
-        print("updateDisks \(disk)")
         if isAnimated {
             animationState.createAnimationCanceller()
             updateDisksWithAnimation(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] finished in

@@ -1,4 +1,4 @@
-public enum Disk {
+public enum Disk: String, Codable {
     case dark
     case light
 }

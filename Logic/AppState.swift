@@ -35,11 +35,11 @@ func reducer(action: Action, state: AppState?) -> AppState {
     var state = state ?? .init()
     state.isStaring = false
 
-    let data = try! JSONEncoder().encode(state)
-    print(String(data: data, encoding: String.Encoding.utf8)!)
-
-    let decoded = try! JSONDecoder().decode(AppState.self, from: data)
-    print(decoded)
+//    let data = try! JSONEncoder().encode(state)
+//    print(String(data: data, encoding: String.Encoding.utf8)!)
+//
+//    let decoded = try! JSONDecoder().decode(AppState.self, from: data)
+//    print(decoded)
 
 
     if let action = action as? AppAction {
@@ -96,36 +96,24 @@ func reducer(action: Action, state: AppState?) -> AppState {
             case .sideDark: state.playerDark.player = player
             case .sideLight: state.playerLight.player = player
             }
+         case .resetAllState:
+            var newState = AppState()
+            newState.isStaring = true
+            newState.squaresState = .init(squares: newState.boardState.squares)
+            newState.playerDark = .init(side: .sideDark, count: newState.boardState.count(of: .diskDark))
+            newState.playerLight = .init(side: .sideLight, count: newState.boardState.count(of: .diskLight))
+            return newState
          case .finisedLoadGame(let loadData):
+            var newState = AppState()
             let boardState = BoardState(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) })
-            state.isStaring = false
-            state.side = loadData.side
-            state.playerDark = .init(player: loadData.player1, side: .sideDark, count: boardState.count(of: .diskDark))
-            state.playerLight = .init(player: loadData.player2, side: .sideLight, count: boardState.count(of: .diskLight))
-            state.squaresState = .init(squares: boardState.squares)
-            state.boardState = boardState
+            newState.side = loadData.side
+            newState.squaresState = .init(squares: boardState.squares)
+            newState.playerDark = .init(player: loadData.player1, side: .sideDark, count: boardState.count(of: .diskDark))
+            newState.playerLight = .init(player: loadData.player2, side: .sideLight, count: boardState.count(of: .diskLight))
+            newState.boardState = boardState
+            return newState
          case .finisedSaveGame:
             break
-         case .resetAllState:
-            var boardState = BoardState()
-            let squares: [Square] = [
-                .init(disk: .diskLight, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
-                .init(disk: .diskDark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
-                .init(disk: .diskDark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
-                .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
-            ]
-            boardState.updateByPartialSquares(squares)
-
-            state.id = NSUUID().uuidString
-            state.isStaring = true
-            state.side = .sideDark
-            state.boardState = boardState
-            state.playerDark = .init(side: .sideDark, count: boardState.count(of: .diskDark))
-            state.playerLight = .init(side: .sideLight, count: boardState.count(of: .diskLight))
-            state.squaresState = .init(squares: boardState.squares)
-            state.boardState = boardState
-            state.computerThinking = .none
-            state.shouldShowCannotPlaceDisk = nil
          case .startComputerThinking(let side):
             state.computerThinking = .thinking(side)
         case .endComputerThinking:
@@ -170,17 +158,22 @@ public struct PlayerSide: StateType, Equatable, Codable {
     public var count: Int = 0
 }
 
+let boardStateInital: [Square] = [
+    .init(disk: .diskLight, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
+    .init(disk: .diskDark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
+    .init(disk: .diskDark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
+    .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
+]
+
 struct BoardState: StateType, Equatable, Codable {
     var squares: [Square]
 
-    init(squares: [Square]? = nil) {
-        if let squares = squares {
-            self.squares = squares
-        } else {
-            self.squares = (0 ..< BoardConstant.squaresCount).map {
-                Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
-            }
+    init(squares: [Square]? = boardStateInital) {
+        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
+            Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
         }
+        squares?.forEach { temp[$0.index] = $0 }
+        self.squares = temp
     }
 
     mutating func updateByPartialSquares(_ partialSquares: [Square]) {

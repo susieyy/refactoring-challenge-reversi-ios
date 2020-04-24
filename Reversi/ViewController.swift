@@ -198,14 +198,6 @@ extension ViewController {
         }
     }
 
-    func showAlter(title: String, message: String) {
-        let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
-            self?.newGame()
-        })
-        present(alertController, animated: true)
-    }
-
     func showCannotPlaceDiskAlert() {
         let alertController = UIAlertController(
             title: "Pass",
@@ -224,12 +216,16 @@ extension ViewController {
 
 extension ViewController {
     @IBAction func pressResetButton(_ sender: UIButton) {
+        store.dispatch(AppAction.showingConfirmation(true))
         let alertController = UIAlertController(
             title: "Confirmation",
             message: "Do you really want to reset the game?",
             preferredStyle: .alert
         )
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in })
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            guard let self = self else { return }
+            self.store.dispatch(AppAction.showingConfirmation(false))
+        })
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }
             self.newGame()

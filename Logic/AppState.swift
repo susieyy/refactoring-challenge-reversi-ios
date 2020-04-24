@@ -24,6 +24,7 @@ public struct AppState: StateType, Codable {
         }
     }
     public var shouldShowCannotPlaceDisk: Trigger?
+    public var isShowingRestConfrmation: Bool = false
 
     var id: String = NSUUID().uuidString
     var side: Side? = .sideDark
@@ -74,6 +75,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
             state.boardState.updateByPartialSquares(squares)
         case .nextTurn:
             guard state.shouldShowCannotPlaceDisk == nil else { return state }
+            guard state.isShowingRestConfrmation == false else { return state }
             guard let temp = state.side else { return state }
             let side = temp.flipped
             state.side = side
@@ -86,6 +88,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
         case .didShowCannotPlaceDisk:
             state.shouldShowCannotPlaceDisk = nil
+        case .showingConfirmation(let isShowing):
+            state.isShowingRestConfrmation = isShowing
         }
     }
     if let action = action as? AppPrivateAction {
@@ -286,6 +290,7 @@ public enum AppAction: Action {
     case changeSquares([Square])
     case nextTurn
     case didShowCannotPlaceDisk
+    case showingConfirmation(Bool)
 }
 
 enum AppPrivateAction: Action {

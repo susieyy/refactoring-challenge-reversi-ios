@@ -47,30 +47,13 @@ func reducer(action: Action, state: AppState?) -> AppState {
         case .placeDisk(let disk, let x, let y):
             let diskCoordinates = state.boardState.squaresState.flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
             guard !diskCoordinates.isEmpty else { return state }
-            let squares = [Square(disk: disk, x: x, y: y)] + diskCoordinates.map {
-                Square(disk: disk, x: $0.0, y: $0.1)
-            }
-            state.boardState.squaresState.updateByPartialSquares(squares)
-
-            let placedSquare = PlacedSquare(disk: disk, x: x, y: y)
-            let changedSquares = diskCoordinates.map {
-                PlacedSquare(disk: disk, x: $0.0, y: $0.1)
-            }
-            state.boardState = .init(
-                squaresState: state.boardState.squaresState,
-                placedSquare: placedSquare,
-                changedSquares: changedSquares,
-                animated: true)
-            do {
-                var player = state.playerDark
-                player.count = state.boardState.squaresState.count(of: .diskDark)
-                state.playerDark = player
-            }
-            do {
-                var player = state.playerLight
-                player.count = state.boardState.squaresState.count(of: .diskLight)
-                state.playerLight = player
-            }
+            let changedSquares = diskCoordinates.map { PlacedSquare(disk: disk, x: $0.0, y: $0.1) }
+            var squaresState = state.boardState.squaresState
+            let squares = [Square(disk: disk, x: x, y: y)] + diskCoordinates.map { Square(disk: disk, x: $0.0, y: $0.1) }
+            squaresState.updateByPartialSquares(squares)
+            state.boardState = .init(squaresState: squaresState, placedSquare: PlacedSquare(disk: disk, x: x, y: y), changedSquares: changedSquares, animated: true)
+            state.playerDark.count = state.boardState.squaresState.count(of: .diskDark)
+            state.playerLight.count = state.boardState.squaresState.count(of: .diskLight)
         case .changeSquares(let squares):
             state.boardState.squaresState.updateByPartialSquares(squares)
         case .nextTurn:
@@ -170,7 +153,7 @@ public struct BoardState: StateType, Equatable, Codable {
         self.squaresState = squaresState
         self.placedSquare = placedSquare
         self.animated = animated
-        self.changedSquares = []
+        self.changedSquares = changedSquares
     }
 }
 

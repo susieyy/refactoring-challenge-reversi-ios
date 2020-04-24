@@ -173,7 +173,7 @@ extension ViewController {
 
     /* Game */
     func updatePlayerControls(_ playerState: PlayerState) {
-        playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.index
+        playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.rawValue
     }
 
     func updateCountLabels(_ playerState: PlayerState) {

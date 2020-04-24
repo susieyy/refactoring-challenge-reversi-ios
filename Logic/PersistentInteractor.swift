@@ -40,8 +40,8 @@ struct PersistentInteractorImpl: PersistentInteractor {
     func createSaveData(side: Side?, player1: PlayerState, player2: PlayerState, boardState: BoardState) -> String {
         var output: String = ""
         output += side.symbol
-        output += player1.player.index.description
-        output += player2.player.index.description
+        output += player1.player.rawValue.description
+        output += player2.player.rawValue.description
         output += "\n"
 
         for y in BoardConstant.yRange {
@@ -78,7 +78,7 @@ struct PersistentInteractorImpl: PersistentInteractor {
             guard
                 let playerSymbol = line.popFirst(),
                 let playerNumber = Int(playerSymbol.description),
-                let player = Player(index: playerNumber)
+                let player = Player(rawValue: playerNumber)
             else {
                 throw PersistentError.parse(path: path, cause: nil)
             }

@@ -177,9 +177,9 @@
 				AA308D6C243F1F700041763B /* Disk.swift */,
 				AAB5EE2B2453239200B1AC43 /* Side.swift */,
 				AA308D6D243F1F700041763B /* Turn.swift */,
+				AA308D70243F1F700041763B /* Player.swift */,
 				AA308D6E243F1F700041763B /* BoardConstant.swift */,
 				AA308D6F243F1F700041763B /* Canceller.swift */,
-				AA308D70243F1F700041763B /* Player.swift */,
 			);
 			path = DataTypes;
 			sourceTree = "<group>";

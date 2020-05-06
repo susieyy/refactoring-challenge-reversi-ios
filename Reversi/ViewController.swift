@@ -217,7 +217,7 @@ extension ViewController {
     }
 }
 
-// MARK: Inputs
+// MARK: User inputs
 
 extension ViewController {
     @IBAction func pressResetButton(_ sender: UIButton) {
@@ -280,15 +280,15 @@ extension Disk {
     }
 }
 
-public class BlockSubscriber<S>: StoreSubscriber {
-    public typealias StoreSubscriberStateType = S
+class BlockSubscriber<S>: StoreSubscriber {
+    typealias StoreSubscriberStateType = S
     private let block: (S) -> Void
 
-    public init(_ block: @escaping (S) -> Void) {
+    init(_ block: @escaping (S) -> Void) {
         self.block = block
     }
 
-    public func newState(state: S) {
+    func newState(state: S) {
         self.block(state)
     }
 }

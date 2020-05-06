@@ -1,7 +1,6 @@
 import UIKit
 import Logic
 import ReSwift
-import ReSwift_Thunk
 
 class ViewController: UIViewController, StoreSubscriber {
     @IBOutlet private var boardView: BoardView!
@@ -46,9 +45,9 @@ class ViewController: UIViewController, StoreSubscriber {
 
     private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
         switch $0 {
-        case .start:
+        case .initialing:
             self.animationState.cancelAll()
-            self.waitForPlayer()
+            self.start()
         case .turn:
             self.waitForPlayer()
         case .gameOverTied, .gameOverWon:
@@ -97,8 +96,12 @@ extension ViewController {
         store.dispatch(AppAction.newGame())
     }
 
+    func start() {
+        store.dispatch(AppAction.start)
+    }
+
     func nextTurn() {
-        store.dispatch(AppAction.nextTurn)
+        store.dispatch(AppAction.nextTurn())
     }
 
     func waitForPlayer() {
@@ -182,15 +185,15 @@ extension ViewController {
     
     func updateMessageViews(currentTurn: CurrentTurn) {
         switch currentTurn {
-        case .start:
+        case .initialing:
             break
-        case .turn(let turn):
+        case .turn(let side, _):
             messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = turn.side.disk
+            messageDiskView.disk = side.disk
             messageLabel.text = "'s turn"
         case .gameOverWon(let winner):
             messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = winner.side.disk
+            messageDiskView.disk = winner.disk
             messageLabel.text = " won"
         case .gameOverTied:
             messageDiskSizeConstraint.constant = 0
@@ -229,7 +232,6 @@ extension ViewController {
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }
             self.newGame()
-            self.waitForPlayer()
         })
         present(alertController, animated: true)
     }
@@ -248,10 +250,10 @@ extension ViewController {
 
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
-        guard case .turn(let turn) = store.state.currentTurn else { return }
         if animationState.isAnimating { return }
-        guard case .manual = turn.player else { return }
-        placeDisk(disk: turn.side.disk, atX: x, y: y)
+        guard case .turn(let side, let player) = store.state.currentTurn else { return }
+        guard case .manual = player else { return }
+        placeDisk(disk: side.disk, atX: x, y: y)
     }
 }
 

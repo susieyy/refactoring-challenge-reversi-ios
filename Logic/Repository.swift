@@ -1,30 +1,37 @@
 import Foundation
 
 protocol Repository {
-    func saveData(path: String, data: String) throws /* FileIOError */
-    func loadData(path: String) throws -> ArraySlice<Substring> /* FileIOError */
+    func saveData(_ data: Data) throws /* FileIOError */
+    func loadData() throws -> Data /* FileIOError */
 }
 
 struct RepositoryImpl: Repository {
     enum FileIOError: Error {
-        case write(path: String, cause: Error?)
-        case read(path: String, cause: Error?)
+        case write(cause: Error?)
+        case read(cause: Error?)
     }
 
-    func saveData(path: String, data: String) throws {
+    private func createFileURL() throws -> URL {
+        try FileManager.default
+            .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("appstate.json")
+    }
+
+    func saveData(_ data: Data) throws {
         do {
-            try data.write(toFile: path, atomically: true, encoding: .utf8)
+            let fileURL = try createFileURL()
+            try data.write(to: fileURL, options: [])
         } catch let error {
-            throw FileIOError.read(path: path, cause: error)
+            throw FileIOError.read(cause: error)
         }
     }
 
-    func loadData(path: String) throws -> ArraySlice<Substring> {
+    func loadData() throws -> Data {
         do {
-            let input = try String(contentsOfFile: path, encoding: .utf8)
-            return input.split(separator: "\n")[...]
+            let fileURL = try createFileURL()
+            return try Data(contentsOf: fileURL)
         } catch let error {
-            throw FileIOError.write(path: path, cause: error)
+            throw FileIOError.write(cause: error)
         }
     }
 }

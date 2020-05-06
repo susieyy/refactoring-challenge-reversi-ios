@@ -23,6 +23,8 @@ class ViewController: UIViewController, StoreSubscriber {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: State handling (State -> State, or Views)
+
     override func viewDidLoad() {
         super.viewDidLoad()
         boardView.delegate = self
@@ -80,7 +82,7 @@ class ViewController: UIViewController, StoreSubscriber {
     }
 }
 
-// MARK: Game management
+// MARK: Game management (Views -> State)
 
 extension ViewController {
     func saveGame() {
@@ -118,7 +120,7 @@ extension ViewController {
     }
 }
 
-// MARK: Views
+// MARK: Views (State -> Views)
 
 extension ViewController {
     /* Board */

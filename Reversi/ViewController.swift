@@ -28,6 +28,7 @@ class ViewController: UIViewController, StoreSubscriber {
     override func viewDidLoad() {
         super.viewDidLoad()
         boardView.delegate = self
+        boardView.setUp(boardSetting: store.state.boardSetting)
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
@@ -289,6 +290,8 @@ extension Disk {
         }
     }
 }
+
+// MARK: Additional for ReSwift's subscriber
 
 class BlockSubscriber<S>: StoreSubscriber {
     typealias StoreSubscriberStateType = S

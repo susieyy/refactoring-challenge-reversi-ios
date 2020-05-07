@@ -2,9 +2,9 @@ import Foundation
 import ReSwift
 
 public struct AppState: StateType, Codable {
+    public var boardState: BoardState
     public var playerDark: PlayerSide = .init(side: .sideDark)
     public var playerLight: PlayerSide = .init(side: .sideLight)
-    public var boardState: BoardState = .init()
     public var computerThinking: ComputerThinking = .none
     public var shouldShowCannotPlaceDisk: Trigger?
     public var isShowingRestConfrmation: Bool = false
@@ -22,11 +22,16 @@ public struct AppState: StateType, Codable {
             return .gameOverTied
         }
     }
+    public var boardSetting: BoardSetting { boardState.diskCoordinatesState.boardSetting }
 
     var id: String = NSUUID().uuidString // prevent override uing reseted state
     var side: Side? = .sideDark
     var isInitialing: Bool = true
     var isLoadedGame: Bool = false // prevent duplicate load game calls
+
+    init(boardSetting: BoardSetting = .init(cols: 8, rows: 8)) {
+        self.boardState = .init(diskCoordinatesState: DiskCoordinatesState(boardSetting: boardSetting))
+    }
 }
 
 func reducer(action: Action, state: AppState?) -> AppState {
@@ -140,7 +145,7 @@ public struct BoardState: StateType, Equatable, Codable {
     public var changed: BoardChanged?
     var diskCoordinatesState: DiskCoordinatesState
 
-    init(diskCoordinatesState: DiskCoordinatesState = .init(), changed: BoardChanged? = nil) {
+    init(diskCoordinatesState: DiskCoordinatesState, changed: BoardChanged? = nil) {
         self.diskCoordinatesState = diskCoordinatesState
         self.changed = changed
     }
@@ -148,28 +153,30 @@ public struct BoardState: StateType, Equatable, Codable {
 
 public struct DiskCoordinatesState: StateType, Equatable, Codable {
     public var diskCoordinates: [OptionalDiskCoordinate]
+    var boardSetting: BoardSetting
 
     subscript(coordinate: Coordinate) -> OptionalDiskCoordinate? {
         get {
-            guard BoardConstant.validCoordinate(coordinate) else { return nil }
-            let index = coordinate.y * BoardConstant.cols + coordinate.x
+            guard boardSetting.validCoordinate(coordinate) else { return nil }
+            let index = coordinate.y * boardSetting.cols + coordinate.x
             return diskCoordinates[index]
         }
         set(newvalue) {
             guard let newvalue = newvalue else { return }
-            guard BoardConstant.validCoordinate(coordinate) else { return }
-            let index = coordinate.y * BoardConstant.cols + coordinate.x
+            guard boardSetting.validCoordinate(coordinate) else { return }
+            let index = coordinate.y * boardSetting.cols + coordinate.x
             diskCoordinates[index] = newvalue
         }
     }
 
-    init() {
-        self.diskCoordinates = BoardConstant.coordinates.map { OptionalDiskCoordinate(coordinate: $0) }
+    init(boardSetting: BoardSetting) {
+        self.boardSetting = boardSetting
+        self.diskCoordinates = boardSetting.coordinates.map { OptionalDiskCoordinate(coordinate: $0) }
         let initalDiskCoordinates: [PlacedDiskCoordinate] = [
-            .init(disk: .diskLight, coordinate: .init(x: BoardConstant.cols / 2 - 1, y: BoardConstant.rows / 2 - 1)),
-            .init(disk: .diskDark, coordinate: .init(x: BoardConstant.cols / 2, y: BoardConstant.rows / 2 - 1)),
-            .init(disk: .diskDark, coordinate: .init(x: BoardConstant.cols / 2 - 1, y: BoardConstant.rows / 2)),
-            .init(disk: .diskLight, coordinate: .init(x: BoardConstant.cols / 2, y: BoardConstant.rows / 2)),
+            .init(disk: .diskLight, coordinate: .init(x: boardSetting.cols / 2 - 1, y: boardSetting.rows / 2 - 1)),
+            .init(disk: .diskDark, coordinate: .init(x: boardSetting.cols / 2, y: boardSetting.rows / 2 - 1)),
+            .init(disk: .diskDark, coordinate: .init(x: boardSetting.cols / 2 - 1, y: boardSetting.rows / 2)),
+            .init(disk: .diskLight, coordinate: .init(x: boardSetting.cols / 2, y: boardSetting.rows / 2)),
         ]
         initalDiskCoordinates.forEach { self[$0.optionalDiskCoordinate.coordinate] = $0.optionalDiskCoordinate }
     }

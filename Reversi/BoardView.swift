@@ -7,32 +7,35 @@ public class BoardView: UIView {
     private var cellViews: [CellView] = []
     private var actions: [CellSelectionAction] = []
     weak var delegate: BoardViewDelegate?
+    var boardSetting: BoardSetting?
 
     subscript(coordinate: Coordinate) -> CellView {
         get {
-            let index = coordinate.y * BoardConstant.rows + coordinate.x
+            guard let boardSetting = boardSetting else { preconditionFailure() }
+            let index = coordinate.y * boardSetting.rows + coordinate.x
             return cellViews[index]
         }
         set(newvalue) {
-            let index = coordinate.y * BoardConstant.rows + coordinate.x
+            guard let boardSetting = boardSetting else { preconditionFailure() }
+            let index = coordinate.y * boardSetting.rows + coordinate.x
             cellViews[index] = newvalue
         }
     }
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
-        setUp()
     }
 
     required public init?(coder: NSCoder) {
         super.init(coder: coder)
-        setUp()
     }
 
-    private func setUp() {
+    func setUp(boardSetting: BoardSetting) {
+        self.boardSetting = boardSetting
+
         backgroundColor = UIColor(named: "DarkColor")!
         
-        let cellViews: [CellView] = BoardConstant.coordinates.map { _ in
+        let cellViews: [CellView] = boardSetting.coordinates.map { _ in
             let cellView = CellView()
             cellView.translatesAutoresizingMaskIntoConstraints = false
             return cellView
@@ -51,11 +54,11 @@ public class BoardView: UIView {
             cellViews[0].widthAnchor.constraint(equalTo: cellViews[0].heightAnchor),
         ])
 
-        BoardConstant.coordinates.forEach {
+        boardSetting.coordinates.forEach {
             let topNeighborAnchor: NSLayoutYAxisAnchor
             do {
                 let coordinate: Coordinate = .init(x: $0.x, y: $0.y - 1)
-                if BoardConstant.validCoordinate(coordinate) {
+                if boardSetting.validCoordinate(coordinate) {
                     topNeighborAnchor = self[coordinate].bottomAnchor
                 } else {
                     topNeighborAnchor = topAnchor
@@ -65,7 +68,7 @@ public class BoardView: UIView {
             let leftNeighborAnchor: NSLayoutXAxisAnchor
             do {
                 let coordinate: Coordinate = .init(x: $0.x - 1, y: $0.y)
-                if BoardConstant.validCoordinate(coordinate) {
+                if boardSetting.validCoordinate(coordinate) {
                     leftNeighborAnchor = self[coordinate].rightAnchor
                 } else {
                     leftNeighborAnchor = leftAnchor
@@ -78,12 +81,12 @@ public class BoardView: UIView {
                 cellView.leftAnchor.constraint(equalTo: leftNeighborAnchor, constant: lineWidth),
             ])
 
-            if $0.y == BoardConstant.rows - 1 {
+            if $0.y == boardSetting.rows - 1 {
                 NSLayoutConstraint.activate([
                     bottomAnchor.constraint(equalTo: cellView.bottomAnchor, constant: lineWidth),
                 ])
             }
-            if $0.x == BoardConstant.rows - 1 {
+            if $0.x == boardSetting.rows - 1 {
                 NSLayoutConstraint.activate([
                     rightAnchor.constraint(equalTo: cellView.rightAnchor, constant: lineWidth),
                 ])
@@ -91,7 +94,7 @@ public class BoardView: UIView {
 
         }
 
-        BoardConstant.coordinates.forEach {
+        boardSetting.coordinates.forEach {
             let action = CellSelectionAction(boardView: self, coordinate: $0)
             actions.append(action) // To retain the `action`
             let cellView: CellView = self[$0]

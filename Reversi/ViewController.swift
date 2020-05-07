@@ -116,6 +116,14 @@ extension ViewController {
         store.dispatch(AppAction.changePlayer(side: side, player: player))
         animationState.cancel(at: side)
     }
+
+    func showingConfirmation(isShowing: Bool) {
+        store.dispatch(AppAction.showingConfirmation(isShowing))
+    }
+
+    func didShowCannotPlaceDisk() {
+        store.dispatch(AppAction.didShowCannotPlaceDisk)
+    }
 }
 
 // MARK: Views (State -> Views)
@@ -221,7 +229,7 @@ extension ViewController {
             preferredStyle: .alert
         )
         alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-            self?.store.dispatch(AppAction.didShowCannotPlaceDisk)
+            self?.didShowCannotPlaceDisk()
             self?.nextTurn()
         })
         present(alertController, animated: true)
@@ -232,7 +240,7 @@ extension ViewController {
 
 extension ViewController {
     @IBAction func pressResetButton(_ sender: UIButton) {
-        store.dispatch(AppAction.showingConfirmation(true))
+        showingConfirmation(isShowing: true)
         let alertController = UIAlertController(
             title: "Confirmation",
             message: "Do you really want to reset the game?",
@@ -240,7 +248,8 @@ extension ViewController {
         )
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
             guard let self = self else { return }
-            self.store.dispatch(AppAction.showingConfirmation(false))
+            self.showingConfirmation(isShowing: false)
+            self.waitForPlayer()
         })
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }

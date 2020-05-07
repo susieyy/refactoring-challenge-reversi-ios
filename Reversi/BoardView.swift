@@ -8,6 +8,17 @@ public class BoardView: UIView {
     private var actions: [CellSelectionAction] = []
     weak var delegate: BoardViewDelegate?
 
+    subscript(coordinate: Coordinate) -> CellView {
+        get {
+            let index = coordinate.y * BoardConstant.rows + coordinate.x
+            return cellViews[index]
+        }
+        set(newvalue) {
+            let index = coordinate.y * BoardConstant.rows + coordinate.x
+            cellViews[index] = newvalue
+        }
+    }
+
     override public init(frame: CGRect) {
         super.init(frame: frame)
         setUp()
@@ -21,7 +32,7 @@ public class BoardView: UIView {
     private func setUp() {
         backgroundColor = UIColor(named: "DarkColor")!
         
-        let cellViews: [CellView] = (0 ..< BoardConstant.coordinateCount).map { _ in
+        let cellViews: [CellView] = BoardConstant.coordinates.map { _ in
             let cellView = CellView()
             cellView.translatesAutoresizingMaskIntoConstraints = false
             return cellView
@@ -39,56 +50,57 @@ public class BoardView: UIView {
         NSLayoutConstraint.activate([
             cellViews[0].widthAnchor.constraint(equalTo: cellViews[0].heightAnchor),
         ])
-        
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                let topNeighborAnchor: NSLayoutYAxisAnchor
-                if let index = BoardConstant.convertCoordinateToIndex(x: x, y: y - 1) {
-                    topNeighborAnchor = cellViews[index].bottomAnchor
+
+        BoardConstant.coordinates.forEach {
+            let topNeighborAnchor: NSLayoutYAxisAnchor
+            do {
+                let coordinate: Coordinate = .init(x: $0.x, y: $0.y - 1)
+                if BoardConstant.validCoordinate(coordinate) {
+                    topNeighborAnchor = self[coordinate].bottomAnchor
                 } else {
                     topNeighborAnchor = topAnchor
                 }
-                
-                let leftNeighborAnchor: NSLayoutXAxisAnchor
-                if let index = BoardConstant.convertCoordinateToIndex(x: x - 1, y: y) {
-                    leftNeighborAnchor = cellViews[index].rightAnchor
+            }
+
+            let leftNeighborAnchor: NSLayoutXAxisAnchor
+            do {
+                let coordinate: Coordinate = .init(x: $0.x - 1, y: $0.y)
+                if BoardConstant.validCoordinate(coordinate) {
+                    leftNeighborAnchor = self[coordinate].rightAnchor
                 } else {
                     leftNeighborAnchor = leftAnchor
                 }
-                
-                let cellView = cellViews[BoardConstant.convertCoordinateToIndex(x: x, y: y)!]
+            }
+
+            let cellView = self[$0]
+            NSLayoutConstraint.activate([
+                cellView.topAnchor.constraint(equalTo: topNeighborAnchor, constant: lineWidth),
+                cellView.leftAnchor.constraint(equalTo: leftNeighborAnchor, constant: lineWidth),
+            ])
+
+            if $0.y == BoardConstant.rows - 1 {
                 NSLayoutConstraint.activate([
-                    cellView.topAnchor.constraint(equalTo: topNeighborAnchor, constant: lineWidth),
-                    cellView.leftAnchor.constraint(equalTo: leftNeighborAnchor, constant: lineWidth),
+                    bottomAnchor.constraint(equalTo: cellView.bottomAnchor, constant: lineWidth),
                 ])
-                
-                if y == BoardConstant.height - 1 {
-                    NSLayoutConstraint.activate([
-                        bottomAnchor.constraint(equalTo: cellView.bottomAnchor, constant: lineWidth),
-                    ])
-                }
-                if x == BoardConstant.width - 1 {
-                    NSLayoutConstraint.activate([
-                        rightAnchor.constraint(equalTo: cellView.rightAnchor, constant: lineWidth),
-                    ])
-                }
             }
+            if $0.x == BoardConstant.rows - 1 {
+                NSLayoutConstraint.activate([
+                    rightAnchor.constraint(equalTo: cellView.rightAnchor, constant: lineWidth),
+                ])
+            }
+
         }
-       
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                let index = BoardConstant.convertCoordinateToIndex(x: x, y: y)!
-                let cellView: CellView = cellViews[index]
-                let action = CellSelectionAction(boardView: self, x: x, y: y)
-                actions.append(action) // To retain the `action`
-                cellView.addTarget(action, action: #selector(action.selectCell), for: .touchUpInside)
-            }
+
+        BoardConstant.coordinates.forEach {
+            let action = CellSelectionAction(boardView: self, coordinate: $0)
+            actions.append(action) // To retain the `action`
+            let cellView: CellView = self[$0]
+            cellView.addTarget(action, action: #selector(action.selectCell), for: .touchUpInside)
         }
     }
 
     func updateDisk(_ disk: Disk?, coordinate: Coordinate, animated: Bool, completion: ((Bool) -> Void)? = nil) {
-        guard let index = BoardConstant.convertCoordinateToIndex(coordinate) else { preconditionFailure() }
-        cellViews[index].setDisk(disk, animated: animated, completion: completion)
+        self[coordinate].setDisk(disk, animated: animated, completion: completion)
     }
 }
 
@@ -100,9 +112,9 @@ private class CellSelectionAction: NSObject {
     private weak var boardView: BoardView?
     let coordinate: Coordinate
 
-    init(boardView: BoardView, x: Int, y: Int) {
+    init(boardView: BoardView, coordinate: Coordinate) {
         self.boardView = boardView
-        self.coordinate = .init(x: x, y: y)
+        self.coordinate = coordinate
     }
     
     @objc func selectCell() {

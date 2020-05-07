@@ -127,14 +127,14 @@ extension ViewController {
         }
     }
 
-    func updateDisks(changed: BoardState.Changed, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+    func updateDisks(changed: BoardChanged, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
         let disk = changed.placedDiskCoordinate.disk
-        let coordinate = changed.placedDiskCoordinate.coordinate
-        let diskCoordinates = changed.flippedDiskCoordinates.map { $0.coordinate }
+        let placedCoordinate = changed.placedDiskCoordinate.coordinate
+        let flippedCoordinates = changed.flippedDiskCoordinates.map { $0.coordinate }
 
         if isAnimated {
             animationState.createAnimationCanceller()
-            updateDisksWithAnimation(at: [coordinate] + diskCoordinates, to: disk) { [weak self] finished in
+            updateDisksWithAnimation(at: [placedCoordinate] + flippedCoordinates, to: disk) { [weak self] finished in
                 guard let self = self else { return }
                 if self.animationState.isCancelled { return }
                 self.animationState.cancel()
@@ -145,8 +145,8 @@ extension ViewController {
         } else {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.boardView.updateDisk(disk, coordinate: coordinate, animated: false)
-                diskCoordinates.forEach {
+                self.boardView.updateDisk(disk, coordinate: placedCoordinate, animated: false)
+                flippedCoordinates.forEach {
                     self.boardView.updateDisk(disk, coordinate: $0, animated: false)
                 }
                 completion?(true)

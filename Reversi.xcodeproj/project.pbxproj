@@ -22,6 +22,7 @@
 		AA308D85243F3B440041763B /* ReSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA308D84243F3B440041763B /* ReSwift */; };
 		AA308D87243F3B5B0041763B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D86243F3B5B0041763B /* AppState.swift */; };
 		AA308D8B243F40CE0041763B /* ViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = AA308D89243F40CE0041763B /* ViewController.xib */; };
+		AA98C6142463ACAD00BF867E /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA98C6132463ACAD00BF867E /* Position.swift */; };
 		AAB5EE2C2453239200B1AC43 /* Side.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB5EE2B2453239200B1AC43 /* Side.swift */; };
 		D636B39F23D35043007F370F /* DiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636B39E23D35043007F370F /* DiskView.swift */; };
 		D642BDB423A9FE4500396732 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D642BDB323A9FE4500396732 /* AppDelegate.swift */; };
@@ -95,6 +96,7 @@
 		AA308D7A243F1FA30041763B /* PersistentInteractor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersistentInteractor.swift; sourceTree = "<group>"; };
 		AA308D86243F3B5B0041763B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		AA308D89243F40CE0041763B /* ViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ViewController.xib; sourceTree = "<group>"; };
+		AA98C6132463ACAD00BF867E /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		AAB5EE2B2453239200B1AC43 /* Side.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Side.swift; sourceTree = "<group>"; };
 		D636B39E23D35043007F370F /* DiskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskView.swift; sourceTree = "<group>"; };
 		D642BDB023A9FE4500396732 /* Reversi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reversi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -174,6 +176,7 @@
 			children = (
 				AA308D6C243F1F700041763B /* Disk.swift */,
 				AAB5EE2B2453239200B1AC43 /* Side.swift */,
+				AA98C6132463ACAD00BF867E /* Position.swift */,
 				AA308D70243F1F700041763B /* Player.swift */,
 				AA308D6E243F1F700041763B /* BoardConstant.swift */,
 				AA308D6F243F1F700041763B /* Canceller.swift */,
@@ -435,6 +438,7 @@
 				AA308D87243F3B5B0041763B /* AppState.swift in Sources */,
 				AA308D75243F1F700041763B /* Player.swift in Sources */,
 				AA308D74243F1F700041763B /* Canceller.swift in Sources */,
+				AA98C6142463ACAD00BF867E /* Position.swift in Sources */,
 				AA308D7E243F1FA30041763B /* Repository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

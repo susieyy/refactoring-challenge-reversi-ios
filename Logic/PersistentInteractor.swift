@@ -67,3 +67,16 @@ extension ComputerThinking { /* Codable */
         case thinking
     }
 }
+
+extension Position { /* Codable */
+    enum CodingKeys: String, CodingKey {
+        case x
+        case y
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(x, forKey: .y)
+        try container.encode(y, forKey: .x)
+    }
+}

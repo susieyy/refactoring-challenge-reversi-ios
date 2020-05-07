@@ -12,7 +12,11 @@ public struct BoardConstant {
 
 extension BoardConstant {
     public static func convertPositionToIndex(x: Int, y: Int) -> Int? {
-        guard xRange.contains(x) && yRange.contains(y) else { return nil }
-        return y * width + x
+        convertPositionToIndex(.init(x: x, y: y))
+    }
+
+    public static func convertPositionToIndex(_ position: Position) -> Int? {
+        guard xRange.contains(position.x) && yRange.contains(position.y) else { return nil }
+        return position.y * width + position.x
     }
 }

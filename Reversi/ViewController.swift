@@ -65,8 +65,12 @@ class ViewController: UIViewController, StoreSubscriber {
         case .none:
             self.updateDisksForInitial($0.squares)
         case .some(let changed):
-            self.updateDisks(changed.placedAt.disk, atX: changed.placedAt.x, y: changed.placedAt.y, diskCoordinates: changed.changedSquares.map { ($0.x, $0.y) }, animated: true) { [weak self] _ in
-                self?.nextTurn()
+            self.updateDisks(
+                changed.placedAt.disk,
+                position: changed.placedAt.position,
+                diskCoordinates: changed.changedSquares.map { $0.position },
+                animated: true) { [weak self] _ in
+                    self?.nextTurn()
             }
         }
     }
@@ -107,8 +111,8 @@ extension ViewController {
         store.dispatch(AppAction.waitForPlayer())
     }
     
-    func placeDisk(disk: Disk, atX x: Int, y: Int) {
-        store.dispatch(AppAction.placeDisk(disk: disk, x: x, y: y))
+    func placeDisk(disk: Disk, position: Position) {
+        store.dispatch(AppAction.placeDisk(disk: disk, position: position))
     }
 
     func changePlayer(side: Side, player: Player) {
@@ -123,14 +127,14 @@ extension ViewController {
     /* Board */
     func updateDisksForInitial(_ squareStates: [Square]) {
         squareStates.forEach {
-            boardView.updateDisk($0.disk, atX: $0.x, y: $0.y, animated: false)
+            boardView.updateDisk($0.disk, position: $0.position, animated: false)
         }
     }
 
-    func updateDisks(_ disk: Disk, atX x: Int, y: Int, diskCoordinates: [(Int, Int)], animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+    func updateDisks(_ disk: Disk, position: Position, diskCoordinates: [Position], animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
         if isAnimated {
             animationState.createAnimationCanceller()
-            updateDisksWithAnimation(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] finished in
+            updateDisksWithAnimation(at: [position] + diskCoordinates, to: disk) { [weak self] finished in
                 guard let self = self else { return }
                 if self.animationState.isCancelled { return }
                 self.animationState.cancel()
@@ -141,9 +145,9 @@ extension ViewController {
         } else {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.boardView.updateDisk(disk, atX: x, y: y, animated: false)
-                for (x, y) in diskCoordinates {
-                    self.boardView.updateDisk(disk, atX: x, y: y, animated: false)
+                self.boardView.updateDisk(disk, position: position, animated: false)
+                diskCoordinates.forEach {
+                    self.boardView.updateDisk(disk, position: $0, animated: false)
                 }
                 completion?(true)
                 self.saveGame()
@@ -152,21 +156,21 @@ extension ViewController {
     }
 
     private func updateDisksWithAnimation<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
-        where C.Element == (Int, Int)
+        where C.Element == Position
     {
-        guard let (x, y) = coordinates.first else {
+        guard let position = coordinates.first else {
             completion(true)
             return
         }
 
-        boardView.updateDisk(disk, atX: x, y: y, animated: true) { [weak self] finished in
+        boardView.updateDisk(disk, position: position, animated: true) { [weak self] finished in
             guard let self = self else { return }
             if self.animationState.isCancelled { return }
             if finished {
                 self.updateDisksWithAnimation(at: coordinates.dropFirst(), to: disk, completion: completion)
             } else {
-                for (x, y) in coordinates {
-                    self.boardView.updateDisk(disk, atX: x, y: y, animated: false)
+                coordinates.forEach {
+                    self.boardView.updateDisk(disk, position: $0, animated: false)
                 }
                 completion(false)
             }
@@ -257,11 +261,11 @@ extension ViewController {
 }
 
 extension ViewController: BoardViewDelegate {
-    func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
+    func boardView(_ boardView: BoardView, didSelectCellAt position: Position) {
         if animationState.isAnimating { return }
         guard case .turn(let side, let player) = store.state.currentTurn else { return }
         guard case .manual = player else { return }
-        placeDisk(disk: side.disk, atX: x, y: y)
+        placeDisk(disk: side.disk, position: position)
     }
 }
 

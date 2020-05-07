@@ -86,29 +86,27 @@ public class BoardView: UIView {
         }
     }
 
-    func updateDisk(_ disk: Disk?, atX x: Int, y: Int, animated: Bool, completion: ((Bool) -> Void)? = nil) {
-        guard let index = BoardConstant.convertPositionToIndex(x: x, y: y) else { preconditionFailure() }
+    func updateDisk(_ disk: Disk?, position: Position, animated: Bool, completion: ((Bool) -> Void)? = nil) {
+        guard let index = BoardConstant.convertPositionToIndex(position) else { preconditionFailure() }
         cellViews[index].setDisk(disk, animated: animated, completion: completion)
     }
 }
 
 protocol BoardViewDelegate: AnyObject {
-    func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int)
+    func boardView(_ boardView: BoardView, didSelectCellAt position: Position)
 }
 
 private class CellSelectionAction: NSObject {
     private weak var boardView: BoardView?
-    let x: Int
-    let y: Int
-    
+    let position: Position
+
     init(boardView: BoardView, x: Int, y: Int) {
         self.boardView = boardView
-        self.x = x
-        self.y = y
+        self.position = .init(x: x, y: y)
     }
     
     @objc func selectCell() {
         guard let boardView = boardView else { return }
-        boardView.delegate?.boardView(boardView, didSelectCellAtX: x, y: y)
+        boardView.delegate?.boardView(boardView, didSelectCellAt: position)
     }
 }

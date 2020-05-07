@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Position: Equatable, Codable {
+public struct Coordinate: Equatable, Codable {
     public var x: Int
     public var y: Int
 

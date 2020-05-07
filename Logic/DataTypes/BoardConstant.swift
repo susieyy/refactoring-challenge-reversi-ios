@@ -11,12 +11,12 @@ public struct BoardConstant {
 }
 
 extension BoardConstant {
-    public static func convertPositionToIndex(x: Int, y: Int) -> Int? {
-        convertPositionToIndex(.init(x: x, y: y))
+    public static func convertCoordinateToIndex(x: Int, y: Int) -> Int? {
+        convertCoordinateToIndex(.init(x: x, y: y))
     }
 
-    public static func convertPositionToIndex(_ position: Position) -> Int? {
-        guard xRange.contains(position.x) && yRange.contains(position.y) else { return nil }
-        return position.y * width + position.x
+    public static func convertCoordinateToIndex(_ coordinate: Coordinate) -> Int? {
+        guard xRange.contains(coordinate.x) && yRange.contains(coordinate.y) else { return nil }
+        return coordinate.y * width + coordinate.x
     }
 }

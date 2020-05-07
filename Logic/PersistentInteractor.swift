@@ -68,7 +68,7 @@ extension ComputerThinking { /* Codable */
     }
 }
 
-extension Position { /* Codable */
+extension Coordinate { /* Codable */
     enum CodingKeys: String, CodingKey {
         case x
         case y

@@ -43,20 +43,20 @@ public class BoardView: UIView {
         for y in BoardConstant.yRange {
             for x in BoardConstant.xRange {
                 let topNeighborAnchor: NSLayoutYAxisAnchor
-                if let index = BoardConstant.convertPositionToIndex(x: x, y: y - 1) {
+                if let index = BoardConstant.convertCoordinateToIndex(x: x, y: y - 1) {
                     topNeighborAnchor = cellViews[index].bottomAnchor
                 } else {
                     topNeighborAnchor = topAnchor
                 }
                 
                 let leftNeighborAnchor: NSLayoutXAxisAnchor
-                if let index = BoardConstant.convertPositionToIndex(x: x - 1, y: y) {
+                if let index = BoardConstant.convertCoordinateToIndex(x: x - 1, y: y) {
                     leftNeighborAnchor = cellViews[index].rightAnchor
                 } else {
                     leftNeighborAnchor = leftAnchor
                 }
                 
-                let cellView = cellViews[BoardConstant.convertPositionToIndex(x: x, y: y)!]
+                let cellView = cellViews[BoardConstant.convertCoordinateToIndex(x: x, y: y)!]
                 NSLayoutConstraint.activate([
                     cellView.topAnchor.constraint(equalTo: topNeighborAnchor, constant: lineWidth),
                     cellView.leftAnchor.constraint(equalTo: leftNeighborAnchor, constant: lineWidth),
@@ -77,7 +77,7 @@ public class BoardView: UIView {
        
         for y in BoardConstant.yRange {
             for x in BoardConstant.xRange {
-                let index = BoardConstant.convertPositionToIndex(x: x, y: y)!
+                let index = BoardConstant.convertCoordinateToIndex(x: x, y: y)!
                 let cellView: CellView = cellViews[index]
                 let action = CellSelectionAction(boardView: self, x: x, y: y)
                 actions.append(action) // To retain the `action`
@@ -86,27 +86,27 @@ public class BoardView: UIView {
         }
     }
 
-    func updateDisk(_ disk: Disk?, position: Position, animated: Bool, completion: ((Bool) -> Void)? = nil) {
-        guard let index = BoardConstant.convertPositionToIndex(position) else { preconditionFailure() }
+    func updateDisk(_ disk: Disk?, coordinate: Coordinate, animated: Bool, completion: ((Bool) -> Void)? = nil) {
+        guard let index = BoardConstant.convertCoordinateToIndex(coordinate) else { preconditionFailure() }
         cellViews[index].setDisk(disk, animated: animated, completion: completion)
     }
 }
 
 protocol BoardViewDelegate: AnyObject {
-    func boardView(_ boardView: BoardView, didSelectCellAt position: Position)
+    func boardView(_ boardView: BoardView, didSelectCellAt coordinate: Coordinate)
 }
 
 private class CellSelectionAction: NSObject {
     private weak var boardView: BoardView?
-    let position: Position
+    let coordinate: Coordinate
 
     init(boardView: BoardView, x: Int, y: Int) {
         self.boardView = boardView
-        self.position = .init(x: x, y: y)
+        self.coordinate = .init(x: x, y: y)
     }
     
     @objc func selectCell() {
         guard let boardView = boardView else { return }
-        boardView.delegate?.boardView(boardView, didSelectCellAt: position)
+        boardView.delegate?.boardView(boardView, didSelectCellAt: coordinate)
     }
 }

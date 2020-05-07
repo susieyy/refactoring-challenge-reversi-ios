@@ -33,7 +33,7 @@ class ViewController: UIViewController, StoreSubscriber {
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
-        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.boardState }.skipRepeats() }
+        store.subscribe(subscriberBoardState) { appState in appState.select { $0.boardState }.skipRepeats() }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -60,17 +60,13 @@ class ViewController: UIViewController, StoreSubscriber {
             break
         }
     }
-    private lazy var subscriberSquareStates = BlockSubscriber<BoardState>() { [unowned self] in
+    private lazy var subscriberBoardState = BlockSubscriber<BoardState>() { [unowned self] in
         switch $0.changed {
         case .none:
-            self.updateDisksForInitial($0.squares)
+            self.updateDisksForInitial($0.diskCoordinates)
         case .some(let changed):
-            self.updateDisks(
-                changed.placedAt.disk,
-                coordinate: changed.placedAt.coordinate,
-                diskCoordinates: changed.changedSquares.map { $0.coordinate },
-                animated: true) { [weak self] _ in
-                    self?.nextTurn()
+            self.updateDisks(changed: changed, animated: true) { [weak self] _ in
+                self?.nextTurn()
             }
         }
     }
@@ -125,13 +121,17 @@ extension ViewController {
 
 extension ViewController {
     /* Board */
-    func updateDisksForInitial(_ squareStates: [Square]) {
-        squareStates.forEach {
+    func updateDisksForInitial(_ diskCoordinates: [OptionalDiskCoordinate]) {
+        diskCoordinates.forEach {
             boardView.updateDisk($0.disk, coordinate: $0.coordinate, animated: false)
         }
     }
 
-    func updateDisks(_ disk: Disk, coordinate: Coordinate, diskCoordinates: [Coordinate], animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+    func updateDisks(changed: BoardState.Changed, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+        let disk = changed.placedDiskCoordinate.disk
+        let coordinate = changed.placedDiskCoordinate.coordinate
+        let diskCoordinates = changed.flippedDiskCoordinates.map { $0.coordinate }
+
         if isAnimated {
             animationState.createAnimationCanceller()
             updateDisksWithAnimation(at: [coordinate] + diskCoordinates, to: disk) { [weak self] finished in

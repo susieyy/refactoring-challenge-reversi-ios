@@ -21,7 +21,7 @@ public class BoardView: UIView {
     private func setUp() {
         backgroundColor = UIColor(named: "DarkColor")!
         
-        let cellViews: [CellView] = (0 ..< BoardConstant.squaresCount).map { _ in
+        let cellViews: [CellView] = (0 ..< BoardConstant.coordinateCount).map { _ in
             let cellView = CellView()
             cellView.translatesAutoresizingMaskIntoConstraints = false
             return cellView

@@ -16,7 +16,7 @@ public struct AppState: StateType, Codable {
             case .sideDark: return .turn(side, playerDark.player)
             case .sideLight: return .turn(side, playerLight.player)
             }
-        } else if let winnerSide = boardState.squaresState.sideWithMoreDisks() {
+        } else if let winnerSide = boardState.diskCoordinatesState.sideWithMoreDisks() {
             return .gameOverWon(winnerSide)
         } else {
             return .gameOverTied
@@ -37,15 +37,15 @@ func reducer(action: Action, state: AppState?) -> AppState {
         case .start:
             state.isInitialing = false
         case .placeDisk(let disk, let coordinate):
-            let diskCoordinates = state.boardState.squaresState.flippedDiskCoordinatesByPlacingDisk(disk, coordinate: coordinate)
-            guard !diskCoordinates.isEmpty else { return state }
+            let flippedDiskCoordinates = state.boardState.diskCoordinatesState.flippedDiskCoordinatesByPlacingDisk(disk, coordinate: coordinate)
+            guard !flippedDiskCoordinates.isEmpty else { return state }
 
-            let changed: BoardState.Changed = .init(placedAt: PlacedSquare(disk: disk, coordinate: coordinate), changedSquares: diskCoordinates)
-            var squaresState = state.boardState.squaresState
-            changed.changedSquaresAll.forEach { squaresState.squares[$0.square.index] = $0.square }
-            state.boardState = .init(squaresState: squaresState, changed: changed)
-            state.playerDark.count = squaresState.count(of: .diskDark)
-            state.playerLight.count = squaresState.count(of: .diskLight)
+            let changed: BoardState.Changed = .init(placedDiskCoordinate: PlacedDiskCoordinate(disk: disk, coordinate: coordinate), flippedDiskCoordinates: flippedDiskCoordinates)
+            var diskCoordinatesState = state.boardState.diskCoordinatesState
+            changed.changedDiskCoordinate.forEach { diskCoordinatesState.diskCoordinates[$0.optionalDiskCoordinate.index] = $0.optionalDiskCoordinate }
+            state.boardState = .init(diskCoordinatesState: diskCoordinatesState, changed: changed)
+            state.playerDark.count = diskCoordinatesState.count(of: .diskDark)
+            state.playerLight.count = diskCoordinatesState.count(of: .diskLight)
         case .didShowCannotPlaceDisk:
             state.shouldShowCannotPlaceDisk = nil
         case .showingConfirmation(let isShowing):
@@ -60,8 +60,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
              guard let temp = state.side else { return state }
              let side = temp.flipped
              state.side = side
-             if state.boardState.squaresState.validMoves(for: side).isEmpty {
-                 if state.boardState.squaresState.validMoves(for: side.flipped).isEmpty {
+             if state.boardState.diskCoordinatesState.validMoves(for: side).isEmpty {
+                 if state.boardState.diskCoordinatesState.validMoves(for: side.flipped).isEmpty {
                      state.side = nil // GameOver
                  } else {
                      state.shouldShowCannotPlaceDisk = .init()
@@ -74,8 +74,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
          case .resetAllState:
             var newState = AppState()
-            newState.playerDark = .init(side: .sideDark, count: newState.boardState.squaresState.count(of: .diskDark))
-            newState.playerLight = .init(side: .sideLight, count: newState.boardState.squaresState.count(of: .diskLight))
+            newState.playerDark = .init(side: .sideDark, count: newState.boardState.diskCoordinatesState.count(of: .diskDark))
+            newState.playerLight = .init(side: .sideLight, count: newState.boardState.diskCoordinatesState.count(of: .diskLight))
             return newState
          case .finisedLoadGame(let loadedAppState):
             var loadedAppState = loadedAppState
@@ -115,16 +115,16 @@ public enum ComputerThinking: Equatable, Codable {
     case thinking(Side)
 }
 
-public struct PlacedSquare: Equatable, Codable {
+public struct PlacedDiskCoordinate: Equatable, Codable {
     public var disk: Disk
     public var coordinate: Coordinate
 }
 
-extension PlacedSquare {
-    var square: Square { Square(disk: disk, coordinate: coordinate) }
+extension PlacedDiskCoordinate {
+    var optionalDiskCoordinate: OptionalDiskCoordinate { OptionalDiskCoordinate(disk: disk, coordinate: coordinate) }
 }
 
-public struct Square: Equatable, Codable {
+public struct OptionalDiskCoordinate: Equatable, Codable {
     public var disk: Disk?
     public var coordinate: Coordinate
     var index: Int { coordinate.y * BoardConstant.width + coordinate.x }
@@ -132,42 +132,42 @@ public struct Square: Equatable, Codable {
 
 public struct BoardState: StateType, Equatable, Codable {
     public struct Changed: Equatable, Codable {
-        public let placedAt: PlacedSquare
-        public let changedSquares: [PlacedSquare]
-        var changedSquaresAll: [PlacedSquare] { [placedAt] + changedSquares }
+        public let placedDiskCoordinate: PlacedDiskCoordinate
+        public let flippedDiskCoordinates: [PlacedDiskCoordinate]
+        var changedDiskCoordinate: [PlacedDiskCoordinate] { [placedDiskCoordinate] + flippedDiskCoordinates }
     }
-    public var squares: [Square] { squaresState.squares }
+    public var diskCoordinates: [OptionalDiskCoordinate] { diskCoordinatesState.diskCoordinates }
     public var changed: Changed?
-    var squaresState: SquaresState
+    var diskCoordinatesState: DiskCoordinatesState
 
-    init(squaresState: SquaresState = .init(), changed: BoardState.Changed? = nil) {
-        self.squaresState = squaresState
+    init(diskCoordinatesState: DiskCoordinatesState = .init(), changed: BoardState.Changed? = nil) {
+        self.diskCoordinatesState = diskCoordinatesState
         self.changed = changed
     }
 }
 
-public struct SquaresState: StateType, Equatable, Codable {
-    static let initalSquares: [Square] = [
+public struct DiskCoordinatesState: StateType, Equatable, Codable {
+    static let initalDiskCoordinates: [PlacedDiskCoordinate] = [
         .init(disk: .diskLight, coordinate: .init(x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1)),
         .init(disk: .diskDark, coordinate: .init(x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1)),
         .init(disk: .diskDark, coordinate: .init(x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2)),
         .init(disk: .diskLight, coordinate: .init(x: BoardConstant.width / 2, y: BoardConstant.height / 2)),
     ]
 
-    public var squares: [Square]
+    public var diskCoordinates: [OptionalDiskCoordinate]
 
-    init(squares: [Square] = initalSquares) {
-        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
-            Square(coordinate: .init(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width)))
+    init(placedDiskCoordinates: [PlacedDiskCoordinate] = initalDiskCoordinates) {
+        var temp: [OptionalDiskCoordinate] = (0 ..< BoardConstant.coordinateCount).map {
+            OptionalDiskCoordinate(coordinate: .init(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width)))
         }
-        squares.forEach { temp[$0.index] = $0 }
-        self.squares = temp
+        placedDiskCoordinates.forEach { temp[$0.optionalDiskCoordinate.index] = $0.optionalDiskCoordinate }
+        self.diskCoordinates = temp
     }
 }
 
-extension SquaresState {
+extension DiskCoordinatesState {
     func count(of disk: Disk) -> Int {
-        squares.reduce(0) { $0 + ($1.disk == disk ? 1 : 0) }
+        diskCoordinates.reduce(0) { $0 + ($1.disk == disk ? 1 : 0) }
     }
 
     func sideWithMoreDisks() -> Side? {
@@ -177,10 +177,10 @@ extension SquaresState {
     }
 
     func validMoves(for side: Side) -> [Coordinate] {
-        squares.filter { canPlaceDisk(side.disk, coordinate: $0.coordinate) }.map { $0.coordinate }
+        diskCoordinates.filter { canPlaceDisk(side.disk, coordinate: $0.coordinate) }.map { $0.coordinate }
     }
 
-    func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, coordinate: Coordinate) -> [PlacedSquare] {
+    func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, coordinate: Coordinate) -> [PlacedDiskCoordinate] {
         let directions = [
             (x: -1, y: -1),
             (x:  0, y: -1),
@@ -192,7 +192,7 @@ extension SquaresState {
             (x: -1, y:  1),
         ]
 
-        guard squareAt(coordinate)?.disk == nil else { return [] }
+        guard diskCoordinateAt(coordinate)?.disk == nil else { return [] }
         var diskCoordinates: [Coordinate] = []
 
         for direction in directions {
@@ -204,7 +204,7 @@ extension SquaresState {
                 x += direction.x
                 y += direction.y
 
-                switch (disk, squareAt(.init(x: x, y: y))?.disk) { // Uses tuples to make patterns exhaustive
+                switch (disk, diskCoordinateAt(.init(x: x, y: y))?.disk) { // Uses tuples to make patterns exhaustive
                 case (.diskDark, .some(.diskDark)), (.diskLight, .some(.diskLight)):
                     diskCoordinates.append(contentsOf: diskCoordinatesInLine)
                     break flipping
@@ -215,12 +215,12 @@ extension SquaresState {
                 }
             }
         }
-        return diskCoordinates.map { PlacedSquare(disk: disk, coordinate: $0) }
+        return diskCoordinates.map { PlacedDiskCoordinate(disk: disk, coordinate: $0) }
     }
 
-    private func squareAt(_ coordinate: Coordinate) -> Square? {
+    private func diskCoordinateAt(_ coordinate: Coordinate) -> OptionalDiskCoordinate? {
         guard BoardConstant.xRange.contains(coordinate.x) && BoardConstant.yRange.contains(coordinate.y) else { return nil }
-        return squares[coordinate.y * BoardConstant.width + coordinate.x]
+        return diskCoordinates[coordinate.y * BoardConstant.width + coordinate.x]
     }
 
     private func canPlaceDisk(_ disk: Disk, coordinate: Coordinate) -> Bool {
@@ -361,7 +361,7 @@ extension AppAction {
             case .initialing:
                 break
             case .turn(let side, _):
-                let candidates = state.boardState.squaresState.validMoves(for: side)
+                let candidates = state.boardState.diskCoordinatesState.validMoves(for: side)
                 if candidates.isEmpty {
                     dispatch(AppAction.nextTurn())
                     return

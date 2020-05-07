@@ -7,7 +7,7 @@ public struct BoardConstant {
     public static let xRange: Range<Int> = 0 ..< BoardConstant.width
     public static let yRange: Range<Int> = 0 ..< BoardConstant.height
 
-    public static var squaresCount: Int { width * height }
+    public static var coordinateCount: Int { width * height }
 }
 
 extension BoardConstant {

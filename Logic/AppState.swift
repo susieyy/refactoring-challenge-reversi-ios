@@ -23,7 +23,7 @@ public struct AppState: StateType, Codable {
         }
     }
 
-    var id: String = NSUUID().uuidString
+    var id: String = NSUUID().uuidString // prevent override uing reseted state
     var side: Side? = .sideDark
     var isInitialing: Bool = true
     var isLoadedGame: Bool = false // prevent duplicate load game calls
@@ -81,8 +81,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
          case .finisedLoadGame(let loadedAppState):
             var loadedAppState = loadedAppState
             loadedAppState.isInitialing = true
-            loadedAppState.isLoadedGame = true
-            loadedAppState.boardState.changed = nil
+            //loadedAppState.isLoadedGame = true
             return loadedAppState
          case .finisedSaveGame:
             break
@@ -291,7 +290,9 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.saveGame() START")
             do {
-                guard let state = getState() else { return }
+                guard var state = getState() else { return }
+                state.boardState.changed = nil
+                state.computerThinking = .none
                 try dependency.persistentInteractor.saveGame(state)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
@@ -312,7 +313,6 @@ extension AppAction {
                 dispatch(AppPrivateAction.resetAllState)
                 let loadData = try dependency.persistentInteractor.loadGame()
                 dispatch(AppPrivateAction.finisedLoadGame(loadData))
-                dispatch(AppAction.waitForPlayer())
             } catch let error {
                 dump(error)
                 dispatch(AppAction.newGame())
@@ -372,6 +372,10 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState, dependencye in
             print("- Logic.AppAction.playTurnOfComputer() START")
             guard let state = getState() else { return }
+            if case .thinking = state.computerThinking {
+                return
+            }
+
             switch state.currentTurn {
             case .initialing:
                 break
@@ -384,12 +388,14 @@ extension AppAction {
                 guard let position = candidates.randomElement() else { preconditionFailure() }
                 let id = state.id
                 store.dispatch(AppPrivateAction.startComputerThinking(side))
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    defer {
+                        dispatch(AppPrivateAction.endComputerThinking)
+                    }
                     guard let appState = getState() else { return }
                     guard case .thinking = appState.computerThinking else { return }
                     guard id == appState.id else { return }
                     dispatch(AppAction.placeDisk(disk: side.disk, position: position))
-                    dispatch(AppPrivateAction.endComputerThinking)
                 }
             case .gameOverWon, .gameOverTied:
                 preconditionFailure()

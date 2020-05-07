@@ -107,8 +107,8 @@ extension ViewController {
         store.dispatch(AppAction.waitForPlayer())
     }
     
-    func placeDisk(disk: Disk, coordinate: Coordinate) {
-        store.dispatch(AppAction.placeDisk(disk: disk, coordinate: coordinate))
+    func placeDisk(_ placedDiskCoordinate: PlacedDiskCoordinate) {
+        store.dispatch(AppAction.placeDisk(placedDiskCoordinate))
     }
 
     func changePlayer(side: Side, player: Player) {
@@ -265,7 +265,7 @@ extension ViewController: BoardViewDelegate {
         if animationState.isAnimating { return }
         guard case .turn(let side, let player) = store.state.currentTurn else { return }
         guard case .manual = player else { return }
-        placeDisk(disk: side.disk, coordinate: coordinate)
+        placeDisk(PlacedDiskCoordinate(disk: side.disk, coordinate: coordinate))
     }
 }
 

@@ -2,73 +2,54 @@ import Foundation
 import ReSwift
 
 public struct AppState: StateType, Codable {
+    public var boardState: BoardState
     public var playerDark: PlayerSide = .init(side: .sideDark)
     public var playerLight: PlayerSide = .init(side: .sideLight)
-    public var boardState: BoardState = .init()
     public var computerThinking: ComputerThinking = .none
-    public var currentTurn: CurrentTurn {
-        if isStaring {
-            return CurrentTurn.start
-        } else if let side = side {
-            switch side {
-            case .sideDark: return CurrentTurn.turn(playerDark)
-            case .sideLight: return CurrentTurn.turn(playerLight)
-            }
-        } else if let winnerSide = boardState.squaresState.sideWithMoreDisks() {
-            switch winnerSide {
-            case .sideDark: return CurrentTurn.gameOverWon(playerDark)
-            case .sideLight: return CurrentTurn.gameOverWon(playerLight)
-            }
-        } else {
-            return CurrentTurn.gameOverTied
-        }
-    }
     public var shouldShowCannotPlaceDisk: Trigger?
     public var isShowingRestConfrmation: Bool = false
+    public var currentTurn: CurrentTurn {
+        if isInitialing {
+            return .initialing
+        } else if let side = side {
+            switch side {
+            case .sideDark: return .turn(side, playerDark.player)
+            case .sideLight: return .turn(side, playerLight.player)
+            }
+        } else if let winnerSide = boardState.diskCoordinatesState.sideWithMoreDisks() {
+            return .gameOverWon(winnerSide)
+        } else {
+            return .gameOverTied
+        }
+    }
+    public var boardSetting: BoardSetting { boardState.diskCoordinatesState.boardSetting }
 
-    var id: String = NSUUID().uuidString
+    var id: String = NSUUID().uuidString // prevent override uing reseted state
     var side: Side? = .sideDark
-    var isStaring: Bool = false
+    var isInitialing: Bool = true
+    var isLoadedGame: Bool = false // prevent duplicate load game calls
+
+    init(boardSetting: BoardSetting = .init(cols: 8, rows: 8)) {
+        self.boardState = .init(diskCoordinatesState: DiskCoordinatesState(boardSetting: boardSetting))
+    }
 }
 
 func reducer(action: Action, state: AppState?) -> AppState {
     var state = state ?? .init()
-    state.isStaring = false
-
-//    let data = try! JSONEncoder().encode(state)
-//    print(String(data: data, encoding: String.Encoding.utf8)!)
-//
-//    let decoded = try! JSONDecoder().decode(AppState.self, from: data)
-//    print(decoded)
-
 
     if let action = action as? AppAction {
         switch action {
-        case .placeDisk(let disk, let x, let y):
-            let diskCoordinates = state.boardState.squaresState.flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
-            guard !diskCoordinates.isEmpty else { return state }
-            let changedSquares = diskCoordinates.map { PlacedSquare(disk: disk, x: $0.0, y: $0.1) }
-            var squaresState = state.boardState.squaresState
-            let squares = [Square(disk: disk, x: x, y: y)] + diskCoordinates.map { Square(disk: disk, x: $0.0, y: $0.1) }
-            squaresState.updateByPartialSquares(squares)
-            state.boardState = .init(squaresState: squaresState, placedSquare: PlacedSquare(disk: disk, x: x, y: y), changedSquares: changedSquares, animated: true)
-            state.playerDark.count = state.boardState.squaresState.count(of: .diskDark)
-            state.playerLight.count = state.boardState.squaresState.count(of: .diskLight)
-        case .changeSquares(let squares):
-            state.boardState.squaresState.updateByPartialSquares(squares)
-        case .nextTurn:
-            guard state.shouldShowCannotPlaceDisk == nil else { return state }
-            guard state.isShowingRestConfrmation == false else { return state }
-            guard let temp = state.side else { return state }
-            let side = temp.flipped
-            state.side = side
-            if state.boardState.squaresState.validMoves(for: side).isEmpty {
-                if state.boardState.squaresState.validMoves(for: side.flipped).isEmpty {
-                    state.side = nil // GameOver
-                } else {
-                    state.shouldShowCannotPlaceDisk = .init()
-                }
-            }
+        case .start:
+            state.isInitialing = false
+        case .placeDisk(let placedDiskCoordinate):
+            let flippedDiskCoordinates = state.boardState.diskCoordinatesState.flippedDiskCoordinatesByPlacingDisk(placedDiskCoordinate)
+            guard !flippedDiskCoordinates.isEmpty else { return state }
+
+            let changed: BoardChanged = .init(placedDiskCoordinate: placedDiskCoordinate, flippedDiskCoordinates: flippedDiskCoordinates)
+            changed.changedDiskCoordinate.forEach { state.boardState.diskCoordinatesState[$0.coordinate] = $0.optionalDiskCoordinate }
+            state.boardState.changed = changed
+            state.playerDark.count = state.boardState.diskCoordinatesState.count(of: .diskDark)
+            state.playerLight.count = state.boardState.diskCoordinatesState.count(of: .diskLight)
         case .didShowCannotPlaceDisk:
             state.shouldShowCannotPlaceDisk = nil
         case .showingConfirmation(let isShowing):
@@ -77,6 +58,18 @@ func reducer(action: Action, state: AppState?) -> AppState {
     }
     if let action = action as? AppPrivateAction {
          switch action {
+         case .nextTurn:
+             guard state.shouldShowCannotPlaceDisk == nil else { return state }
+             guard state.isShowingRestConfrmation == false else { return state }
+             guard let temp = state.side else { return state }
+             let side = temp.flipped
+             state.side = side
+             guard state.boardState.diskCoordinatesState.validMoves(for: side).isEmpty else { return state }
+             if state.boardState.diskCoordinatesState.validMoves(for: side.flipped).isEmpty {
+                 state.side = nil // GameOver
+             } else {
+                 state.shouldShowCannotPlaceDisk = .init()
+             }
          case .changePlayer(let side, let player):
             switch side {
             case .sideDark: state.playerDark.player = player
@@ -84,18 +77,11 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
          case .resetAllState:
             var newState = AppState()
-            newState.isStaring = true
-            newState.boardState = .init()
-            newState.playerDark = .init(side: .sideDark, count: newState.boardState.squaresState.count(of: .diskDark))
-            newState.playerLight = .init(side: .sideLight, count: newState.boardState.squaresState.count(of: .diskLight))
+            newState.playerDark = .init(side: .sideDark, count: newState.boardState.diskCoordinatesState.count(of: .diskDark))
+            newState.playerLight = .init(side: .sideLight, count: newState.boardState.diskCoordinatesState.count(of: .diskLight))
             return newState
-         case .finisedLoadGame(let loadData):
-            var newState = AppState()
-            newState.side = loadData.side
-            newState.boardState = .init(squaresState: SquaresState(squares: loadData.squares.map { Square(disk: $0.disk, x: $0.x, y: $0.y) }))
-            newState.playerDark = .init(player: loadData.player1, side: .sideDark, count: newState.boardState.squaresState.count(of: .diskDark))
-            newState.playerLight = .init(player: loadData.player2, side: .sideLight, count: newState.boardState.squaresState.count(of: .diskLight))
-            return newState
+         case .finisedLoadGame(let loadedAppState):
+            return loadedAppState
          case .finisedSaveGame:
             break
          case .startComputerThinking(let side):
@@ -111,156 +97,142 @@ public struct Trigger: Equatable, Codable {
     let uuid: String = NSUUID().uuidString
 }
 
-public enum ComputerThinking: Equatable, Codable {
-    case none
-    case thinking(Side)
+public enum CurrentTurn: Equatable {
+    case initialing
+    case turn(Side, Player)
+    case gameOverWon(Side)
+    case gameOverTied
 }
 
-public struct PlacedSquare: Equatable, Codable {
-    public var disk: Disk
-    public var x: Int
-    public var y: Int
-}
-
-public struct Square: Equatable, Codable {
-    public var disk: Disk?
-    public var x: Int
-    public var y: Int
-    var index: Int { y * BoardConstant.width + x }
-}
-
-public struct PlayerSide: StateType, Equatable, Codable {
+public struct PlayerSide: Equatable, Codable {
     public var player: Player = .manual
     public var side: Side
     public var count: Int = 0
 }
 
-let boardStateInital: [Square] = [
-    .init(disk: .diskLight, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
-    .init(disk: .diskDark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
-    .init(disk: .diskDark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
-    .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
-]
+public enum ComputerThinking: Equatable, Codable {
+    case none
+    case thinking(Side)
+}
+
+public struct PlacedDiskCoordinate: Equatable, Codable {
+    public var disk: Disk
+    public var coordinate: Coordinate
+
+    public init(disk: Disk, coordinate: Coordinate) {
+        self.disk = disk
+        self.coordinate = coordinate
+    }
+}
+
+extension PlacedDiskCoordinate {
+    var optionalDiskCoordinate: OptionalDiskCoordinate { OptionalDiskCoordinate(disk: disk, coordinate: coordinate) }
+}
+
+public struct OptionalDiskCoordinate: Equatable, Codable {
+    public var disk: Disk?
+    public var coordinate: Coordinate
+}
+
+public struct BoardChanged: Equatable, Codable {
+    public let placedDiskCoordinate: PlacedDiskCoordinate
+    public let flippedDiskCoordinates: [PlacedDiskCoordinate]
+    public var changedDiskCoordinate: [PlacedDiskCoordinate] { [placedDiskCoordinate] + flippedDiskCoordinates }
+}
 
 public struct BoardState: StateType, Equatable, Codable {
-    var squaresState: SquaresState
-    public var squares: [Square] { squaresState.squares }
-    public var placedSquare: PlacedSquare?
-    public var changedSquares: [PlacedSquare]
-    public var animated: Bool
+    public var diskCoordinates: [OptionalDiskCoordinate] { diskCoordinatesState.diskCoordinates }
+    public var changed: BoardChanged?
+    var diskCoordinatesState: DiskCoordinatesState
 
-    init(squaresState: SquaresState = .init(), placedSquare: PlacedSquare? = nil, changedSquares: [PlacedSquare] = [], animated: Bool = false) {
-        self.squaresState = squaresState
-        self.placedSquare = placedSquare
-        self.animated = animated
-        self.changedSquares = changedSquares
+    init(diskCoordinatesState: DiskCoordinatesState, changed: BoardChanged? = nil) {
+        self.diskCoordinatesState = diskCoordinatesState
+        self.changed = changed
     }
 }
 
-public struct SquaresState: StateType, Equatable, Codable {
-    public var squares: [Square]
+public struct DiskCoordinatesState: StateType, Equatable, Codable {
+    public var diskCoordinates: [OptionalDiskCoordinate]
+    var boardSetting: BoardSetting
 
-    init(squares: [Square] = boardStateInital) {
-        var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
-            Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
+    subscript(coordinate: Coordinate) -> OptionalDiskCoordinate? {
+        get {
+            guard boardSetting.validCoordinate(coordinate) else { return nil }
+            let index = coordinate.y * boardSetting.cols + coordinate.x
+            return diskCoordinates[index]
         }
-        squares.forEach { temp[$0.index] = $0 }
-        self.squares = temp
+        set(newvalue) {
+            guard let newvalue = newvalue else { return }
+            guard boardSetting.validCoordinate(coordinate) else { return }
+            let index = coordinate.y * boardSetting.cols + coordinate.x
+            diskCoordinates[index] = newvalue
+        }
+    }
+
+    init(boardSetting: BoardSetting) {
+        self.boardSetting = boardSetting
+        self.diskCoordinates = boardSetting.coordinates.map { OptionalDiskCoordinate(coordinate: $0) }
+        let initalDiskCoordinates: [PlacedDiskCoordinate] = [
+            .init(disk: .diskLight, coordinate: .init(x: boardSetting.cols / 2 - 1, y: boardSetting.rows / 2 - 1)),
+            .init(disk: .diskDark, coordinate: .init(x: boardSetting.cols / 2, y: boardSetting.rows / 2 - 1)),
+            .init(disk: .diskDark, coordinate: .init(x: boardSetting.cols / 2 - 1, y: boardSetting.rows / 2)),
+            .init(disk: .diskLight, coordinate: .init(x: boardSetting.cols / 2, y: boardSetting.rows / 2)),
+        ]
+        initalDiskCoordinates.forEach { self[$0.optionalDiskCoordinate.coordinate] = $0.optionalDiskCoordinate }
     }
 }
 
-extension SquaresState {
-    mutating func updateByPartialSquares(_ partialSquares: [Square]) {
-        var origin = self.squares
-        partialSquares.forEach { origin[$0.index] = $0 }
-        self.squares = origin
-    }
-
+extension DiskCoordinatesState {
     func count(of disk: Disk) -> Int {
-        var count = 0
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                if squareAt(x: x, y: y)?.disk == disk {
-                    count +=  1
-                }
-            }
-        }
-        return count
+        diskCoordinates.reduce(0) { $0 + ($1.disk == disk ? 1 : 0) }
     }
 
-    func squareAt(x: Int, y: Int) -> Square? {
-        guard BoardConstant.xRange.contains(x) && BoardConstant.yRange.contains(y) else { return nil }
-        return squares[y * BoardConstant.width + x]
-    }
-}
-
-extension SquaresState {
     func sideWithMoreDisks() -> Side? {
         let darkCount = count(of: .diskDark)
         let lightCount = count(of: .diskLight)
-        if darkCount == lightCount {
-            return nil
-        } else {
-            return darkCount > lightCount ? .sideDark : .sideLight
+        return darkCount == lightCount ? nil : (darkCount > lightCount ? .sideDark : .sideLight)
+    }
+
+    func validMoves(for side: Side) -> [PlacedDiskCoordinate] {
+        func canPlaceDisk(_ placedDiskCoordinate: PlacedDiskCoordinate) -> Bool {
+            !flippedDiskCoordinatesByPlacingDisk(placedDiskCoordinate).isEmpty
         }
+        return diskCoordinates.map { PlacedDiskCoordinate(disk: side.disk, coordinate: $0.coordinate) }.filter(canPlaceDisk)
     }
 
-    private func canPlaceDisk(_ disk: Disk, atX x: Int, y: Int) -> Bool {
-        !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
-    }
-
-    func validMoves(for side: Side) -> [(x: Int, y: Int)] {
-        var coordinates: [(Int, Int)] = []
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                if canPlaceDisk(side.disk, atX: x, y: y) {
-                    coordinates.append((x, y))
-                }
-            }
-        }
-        return coordinates
-    }
-
-    func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
-        let directions = [
-            (x: -1, y: -1),
-            (x:  0, y: -1),
-            (x:  1, y: -1),
-            (x:  1, y:  0),
-            (x:  1, y:  1),
-            (x:  0, y:  1),
-            (x: -1, y:  0),
-            (x: -1, y:  1),
+    func flippedDiskCoordinatesByPlacingDisk(_ placedDiskCoordinate: PlacedDiskCoordinate) -> [PlacedDiskCoordinate] {
+        let directions: [Coordinate] = [
+            .init(x: -1, y: -1),
+            .init(x:  0, y: -1),
+            .init(x:  1, y: -1),
+            .init(x:  1, y:  0),
+            .init(x:  1, y:  1),
+            .init(x:  0, y:  1),
+            .init(x: -1, y:  0),
+            .init(x: -1, y:  1),
         ]
 
-        guard squareAt(x: x, y: y)?.disk == nil else {
-            return []
-        }
-
-        var diskCoordinates: [(Int, Int)] = []
-
+        let disk = placedDiskCoordinate.disk
+        let coordinate = placedDiskCoordinate.coordinate
+        guard self[coordinate]?.disk == nil else { return [] }
+        var coordinates: [Coordinate] = []
         for direction in directions {
-            var x = x
-            var y = y
-
-            var diskCoordinatesInLine: [(Int, Int)] = []
+            var tmpCoordinate = coordinate
+            var diskCoordinatesInLine: [Coordinate] = []
             flipping: while true {
-                x += direction.x
-                y += direction.y
-
-                switch (disk, squareAt(x: x, y: y)?.disk) { // Uses tuples to make patterns exhaustive
+                tmpCoordinate = tmpCoordinate + direction
+                switch (disk, self[tmpCoordinate]?.disk) { // Uses tuples to make patterns exhaustive
                 case (.diskDark, .some(.diskDark)), (.diskLight, .some(.diskLight)):
-                    diskCoordinates.append(contentsOf: diskCoordinatesInLine)
+                    coordinates.append(contentsOf: diskCoordinatesInLine)
                     break flipping
                 case (.diskDark, .some(.diskLight)), (.diskLight, .some(.diskDark)):
-                    diskCoordinatesInLine.append((x, y))
+                    diskCoordinatesInLine.append(tmpCoordinate)
                 case (_, .none):
                     break flipping
                 }
             }
         }
-
-        return diskCoordinates
+        return coordinates.map { PlacedDiskCoordinate(disk: disk, coordinate: $0) }
     }
 }
 
@@ -277,17 +249,17 @@ struct ErrorAction: Action {
 }
 
 public enum AppAction: Action {
-    case placeDisk(disk: Disk, x: Int, y: Int)
-    case changeSquares([Square])
-    case nextTurn
+    case start
+    case placeDisk(PlacedDiskCoordinate)
     case didShowCannotPlaceDisk
     case showingConfirmation(Bool)
 }
 
 enum AppPrivateAction: Action {
+    case nextTurn
     case changePlayer(side: Side, player: Player)
     case resetAllState
-    case finisedLoadGame(LoadData)
+    case finisedLoadGame(AppState)
     case startComputerThinking(Side)
     case endComputerThinking
     case finisedSaveGame
@@ -296,20 +268,23 @@ enum AppPrivateAction: Action {
 extension AppAction {
     public static func newGame() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            print("- Logic.AppAction.newGame() START")
             dispatch(AppPrivateAction.resetAllState)
             dispatch(AppAction.saveGame())
+            print("- Logic.AppAction.newGame() END")
         }
     }
 
     public static func saveGame() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            print("- Logic.AppAction.saveGame() START")
             do {
-                guard let state = getState() else { return }
-                try dependency.persistentInteractor.saveGame(
-                    side: state.side,
-                    player1: state.playerDark,
-                    player2: state.playerLight,
-                    squaresState: state.boardState.squaresState)
+                guard var state = getState() else { return }
+                state.isInitialing = true
+                state.boardState.changed = nil
+                state.computerThinking = .none
+                state.isShowingRestConfrmation = false
+                try dependency.persistentInteractor.saveGame(state)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
                 dump(error)
@@ -317,11 +292,14 @@ extension AppAction {
                 let message = "Cannot save games."
                 dispatch(ErrorAction(error: error, title: title, message: message))
             }
+            print("- Logic.AppAction.saveGame() END")
         }
     }
 
     public static func loadGame() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            guard getState()?.isLoadedGame == false else { return }
+            print("- Logic.AppAction.loadGame() START")
             do {
                 dispatch(AppPrivateAction.resetAllState)
                 let loadData = try dependency.persistentInteractor.loadGame()
@@ -330,68 +308,91 @@ extension AppAction {
                 dump(error)
                 dispatch(AppAction.newGame())
             }
+            print("- Logic.AppAction.loadGame() END")
+        }
+    }
+
+    public static func nextTurn() -> Thunk<AppState> {
+        return Thunk<AppState> { dispatch, getState, dependency in
+            guard let appSate = getState() else { return }
+            if case .turn(let side, _) = appSate.currentTurn {
+                print("- Logic.AppAction.nextTurn() from: \(side) to: \(side.flipped)")
+            }
+            dispatch(AppPrivateAction.nextTurn)
         }
     }
 
     public static func changePlayer(side: Side, player: Player) -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) START")
             guard let appSate = getState() else { return }
             if case .manual = player {
-                guard case .turn(let turn) = appSate.currentTurn else { return }
-                if side == turn.side {
+                guard case .turn(let currentSide, _) = appSate.currentTurn else { return }
+                if side == currentSide {
                     dispatch(AppPrivateAction.endComputerThinking)
                 }
             }
             dispatch(AppPrivateAction.changePlayer(side: side, player: player))
             dispatch(AppAction.saveGame())
+            print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) END")
         }
     }
 
     public static func waitForPlayer() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            print("- Logic.AppAction.waitForPlayer() START")
             guard let state = getState() else { return }
             switch state.currentTurn {
-            case .start:
+            case .initialing:
                 break
-            case .turn(let turn):
-                switch turn.player {
+            case .turn(_, let player):
+                switch player {
                 case .manual:
                     break
                 case .computer:
                     dispatch(AppAction.playTurnOfComputer())
                 }
             case .gameOverWon, .gameOverTied:
-                break
+                preconditionFailure()
             }
+            print("- Logic.AppAction.waitForPlayer() END")
         }
     }
 
     private static func playTurnOfComputer() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependencye in
+            print("- Logic.AppAction.playTurnOfComputer() START")
             guard let state = getState() else { return }
+            if case .thinking = state.computerThinking {
+                return
+            }
+
             switch state.currentTurn {
-            case .start:
+            case .initialing:
                 break
-            case .turn(let turn):
-                let candidates = state.boardState.squaresState.validMoves(for: turn.side)
-                if candidates.isEmpty {
-                    dispatch(AppAction.nextTurn)
-                    return
-                }
-                guard let (x, y) = candidates.randomElement() else { preconditionFailure() }
-                let side = turn.side
-                let id = state.id
-                store.dispatch(AppPrivateAction.startComputerThinking(side))
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
-                    guard let appState = getState() else { return }
-                    guard case .thinking = appState.computerThinking else { return }
-                    guard id == appState.id else { return }
-                    dispatch(AppAction.placeDisk(disk: side.disk, x: x, y: y))
-                    dispatch(AppPrivateAction.endComputerThinking)
+            case .turn(let side, _):
+                let candidates = state.boardState.diskCoordinatesState.validMoves(for: side)
+                switch candidates.isEmpty {
+                case true:
+                    dispatch(AppAction.nextTurn())
+                case false:
+                    guard let candidate = candidates.randomElement() else { preconditionFailure() }
+                    let id = state.id
+                    store.dispatch(AppPrivateAction.startComputerThinking(side))
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        defer {
+                            dispatch(AppPrivateAction.endComputerThinking)
+                        }
+                        guard let appState = getState() else { return }
+                        guard case .thinking = appState.computerThinking else { return }
+                        guard id == appState.id else { return }
+                        dispatch(AppAction.placeDisk(candidate))
+                    }
                 }
             case .gameOverWon, .gameOverTied:
                 preconditionFailure()
             }
+            print("- Logic.AppAction.playTurnOfComputer() END")
         }
     }
 }
@@ -441,31 +442,5 @@ let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
             dump(action)
             return next(action)
         }
-    }
-}
-
-extension ComputerThinking { /* Codable */
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let value = try? container.decode(String.self, forKey: .none), value == CodingKeys.none.rawValue {
-            self = .none
-        } else if let value = try? container.decode(Side.self, forKey: .thinking) {
-            self = .thinking(value)
-        } else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Data doesn't match"))
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case .none: try container.encode(CodingKeys.none.rawValue, forKey: .none)
-        case .thinking(let disk): try container.encode(disk, forKey: .thinking)
-        }
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case none
-        case thinking
     }
 }

@@ -1,7 +1,6 @@
 import UIKit
 import Logic
 import ReSwift
-import ReSwift_Thunk
 
 class ViewController: UIViewController, StoreSubscriber {
     @IBOutlet private var boardView: BoardView!
@@ -24,15 +23,22 @@ class ViewController: UIViewController, StoreSubscriber {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: State handling (State -> State, or Views)
+
     override func viewDidLoad() {
         super.viewDidLoad()
         boardView.delegate = self
+        boardView.setUp(boardSetting: store.state.boardSetting)
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
-        store.subscribe(subscriberSquareStates) { appState in appState.select { $0.boardState }.skipRepeats() }
+        store.subscribe(subscriberBoardState) { appState in appState.select { $0.boardState }.skipRepeats() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         loadGame()
     }
 
@@ -46,42 +52,35 @@ class ViewController: UIViewController, StoreSubscriber {
 
     private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
         switch $0 {
-        case .start:
+        case .initialing:
             self.animationState.cancelAll()
-            self.waitForPlayer()
+            self.start()
         case .turn:
             self.waitForPlayer()
         case .gameOverTied, .gameOverWon:
             break
         }
     }
-    private lazy var subscriberSquareStates = BlockSubscriber<BoardState>() { [unowned self] in
-        switch $0.animated {
-        case false:
-            self.updateDisksForInitial($0.squares)
-        case true:
-            guard let s = $0.placedSquare else { return }
-            let diskCoordinates: [(Int, Int)] = $0.changedSquares.map { ($0.x, $0.y) }
-            self.updateDisks(s.disk, atX: s.x, y: s.y, diskCoordinates: diskCoordinates, animated: true) { [weak self] _ in
+    private lazy var subscriberBoardState = BlockSubscriber<BoardState>() { [unowned self] in
+        switch $0.changed {
+        case .none:
+            self.updateDisksForInitial($0.diskCoordinates)
+        case .some(let changed):
+            self.updateDisks(changed: changed, animated: true) { [weak self] _ in
                 self?.nextTurn()
             }
         }
     }
     private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
-        switch $0 {
-        case .thinking(let side):
-            self.playerActivityIndicators[side.index].startAnimating()
-        case .none:
-            self.playerActivityIndicators.forEach { $0.stopAnimating() }
-        }
+        self.updatePlayerActivityIndicators(computerThinking: $0)
     }
     private lazy var subscriberShouldShowCannotPlaceDisk = BlockSubscriber<Trigger?>() { [unowned self] in
-        if $0 == nil { return }
+        guard $0 != nil else { return }
         self.showCannotPlaceDiskAlert()
     }
 }
 
-// MARK: Game management
+// MARK: Game management (Views -> State)
 
 extension ViewController {
     func saveGame() {
@@ -97,38 +96,54 @@ extension ViewController {
         store.dispatch(AppAction.newGame())
     }
 
+    func start() {
+        store.dispatch(AppAction.start)
+    }
+
     func nextTurn() {
-        store.dispatch(AppAction.nextTurn)
+        store.dispatch(AppAction.nextTurn())
     }
 
     func waitForPlayer() {
         store.dispatch(AppAction.waitForPlayer())
     }
     
-    func placeDisk(disk: Disk, atX x: Int, y: Int) {
-        store.dispatch(AppAction.placeDisk(disk: disk, x: x, y: y))
+    func placeDisk(_ placedDiskCoordinate: PlacedDiskCoordinate) {
+        store.dispatch(AppAction.placeDisk(placedDiskCoordinate))
     }
 
     func changePlayer(side: Side, player: Player) {
         store.dispatch(AppAction.changePlayer(side: side, player: player))
         animationState.cancel(at: side)
     }
+
+    func showingConfirmation(isShowing: Bool) {
+        store.dispatch(AppAction.showingConfirmation(isShowing))
+    }
+
+    func didShowCannotPlaceDisk() {
+        store.dispatch(AppAction.didShowCannotPlaceDisk)
+    }
 }
 
-// MARK: Views
+// MARK: Views (State -> Views)
 
 extension ViewController {
     /* Board */
-    func updateDisksForInitial(_ squareStates: [Square]) {
-        squareStates.forEach {
-            boardView.updateDisk($0.disk, atX: $0.x, y: $0.y, animated: false)
+    func updateDisksForInitial(_ diskCoordinates: [OptionalDiskCoordinate]) {
+        diskCoordinates.forEach {
+            boardView.updateDisk($0.disk, coordinate: $0.coordinate, animated: false)
         }
     }
 
-    func updateDisks(_ disk: Disk, atX x: Int, y: Int, diskCoordinates: [(Int, Int)], animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+    func updateDisks(changed: BoardChanged, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+        let disk = changed.placedDiskCoordinate.disk
+        let placedCoordinate = changed.placedDiskCoordinate.coordinate
+        let flippedCoordinates = changed.flippedDiskCoordinates.map { $0.coordinate }
+
         if isAnimated {
             animationState.createAnimationCanceller()
-            updateDisksWithAnimation(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] finished in
+            updateDisksWithAnimation(at: [placedCoordinate] + flippedCoordinates, to: disk) { [weak self] finished in
                 guard let self = self else { return }
                 if self.animationState.isCancelled { return }
                 self.animationState.cancel()
@@ -139,9 +154,9 @@ extension ViewController {
         } else {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.boardView.updateDisk(disk, atX: x, y: y, animated: false)
-                for (x, y) in diskCoordinates {
-                    self.boardView.updateDisk(disk, atX: x, y: y, animated: false)
+                self.boardView.updateDisk(disk, coordinate: placedCoordinate, animated: false)
+                flippedCoordinates.forEach {
+                    self.boardView.updateDisk(disk, coordinate: $0, animated: false)
                 }
                 completion?(true)
                 self.saveGame()
@@ -150,24 +165,33 @@ extension ViewController {
     }
 
     private func updateDisksWithAnimation<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
-        where C.Element == (Int, Int)
+        where C.Element == Coordinate
     {
-        guard let (x, y) = coordinates.first else {
+        guard let coordinate = coordinates.first else {
             completion(true)
             return
         }
 
-        boardView.updateDisk(disk, atX: x, y: y, animated: true) { [weak self] finished in
+        boardView.updateDisk(disk, coordinate: coordinate, animated: true) { [weak self] finished in
             guard let self = self else { return }
             if self.animationState.isCancelled { return }
             if finished {
                 self.updateDisksWithAnimation(at: coordinates.dropFirst(), to: disk, completion: completion)
             } else {
-                for (x, y) in coordinates {
-                    self.boardView.updateDisk(disk, atX: x, y: y, animated: false)
+                coordinates.forEach {
+                    self.boardView.updateDisk(disk, coordinate: $0, animated: false)
                 }
                 completion(false)
             }
+        }
+    }
+
+    private func updatePlayerActivityIndicators(computerThinking: ComputerThinking) {
+        switch computerThinking {
+        case .thinking(let side):
+            self.playerActivityIndicators[side.index].startAnimating()
+        case .none:
+            self.playerActivityIndicators.forEach { $0.stopAnimating() }
         }
     }
 
@@ -182,15 +206,15 @@ extension ViewController {
     
     func updateMessageViews(currentTurn: CurrentTurn) {
         switch currentTurn {
-        case .start:
+        case .initialing:
             break
-        case .turn(let turn):
+        case .turn(let side, _):
             messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = turn.side.disk
+            messageDiskView.disk = side.disk
             messageLabel.text = "'s turn"
         case .gameOverWon(let winner):
             messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = winner.side.disk
+            messageDiskView.disk = winner.disk
             messageLabel.text = " won"
         case .gameOverTied:
             messageDiskSizeConstraint.constant = 0
@@ -205,18 +229,18 @@ extension ViewController {
             preferredStyle: .alert
         )
         alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-            self?.store.dispatch(AppAction.didShowCannotPlaceDisk)
+            self?.didShowCannotPlaceDisk()
             self?.nextTurn()
         })
         present(alertController, animated: true)
     }
 }
 
-// MARK: Inputs
+// MARK: User inputs
 
 extension ViewController {
     @IBAction func pressResetButton(_ sender: UIButton) {
-        store.dispatch(AppAction.showingConfirmation(true))
+        showingConfirmation(isShowing: true)
         let alertController = UIAlertController(
             title: "Confirmation",
             message: "Do you really want to reset the game?",
@@ -224,12 +248,12 @@ extension ViewController {
         )
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
             guard let self = self else { return }
-            self.store.dispatch(AppAction.showingConfirmation(false))
+            self.showingConfirmation(isShowing: false)
+            self.waitForPlayer()
         })
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }
             self.newGame()
-            self.waitForPlayer()
         })
         present(alertController, animated: true)
     }
@@ -247,11 +271,11 @@ extension ViewController {
 }
 
 extension ViewController: BoardViewDelegate {
-    func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
-        guard case .turn(let turn) = store.state.currentTurn else { return }
+    func boardView(_ boardView: BoardView, didSelectCellAt coordinate: Coordinate) {
         if animationState.isAnimating { return }
-        guard case .manual = turn.player else { return }
-        placeDisk(disk: turn.side.disk, atX: x, y: y)
+        guard case .turn(let side, let player) = store.state.currentTurn else { return }
+        guard case .manual = player else { return }
+        placeDisk(PlacedDiskCoordinate(disk: side.disk, coordinate: coordinate))
     }
 }
 
@@ -276,15 +300,17 @@ extension Disk {
     }
 }
 
-public class BlockSubscriber<S>: StoreSubscriber {
-    public typealias StoreSubscriberStateType = S
+// MARK: Additional for ReSwift's subscriber
+
+class BlockSubscriber<S>: StoreSubscriber {
+    typealias StoreSubscriberStateType = S
     private let block: (S) -> Void
 
-    public init(_ block: @escaping (S) -> Void) {
+    init(_ block: @escaping (S) -> Void) {
         self.block = block
     }
 
-    public func newState(state: S) {
+    func newState(state: S) {
         self.block(state)
     }
 }

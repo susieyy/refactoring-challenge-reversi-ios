@@ -1,168 +1,82 @@
 import Foundation
 
-public struct LoadData {
-    let side: Side?
-    let player1: Player
-    let player2: Player
-    let squares: [(disk: Disk?, x: Int, y: Int)]
-}
-
 protocol PersistentInteractor {
-    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, squaresState: SquaresState) throws /* FileIOError */
-    func loadGame() throws -> LoadData /* FileIOError, PersistentError */
+    func saveGame(_ appState: AppState) throws /* PersistentError */
+    func loadGame() throws -> AppState /*  PersistentError */
 }
-
-private let defaultPath = (NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true).first! as NSString).appendingPathComponent("Game")
 
 struct PersistentInteractorImpl: PersistentInteractor {
     enum PersistentError: Error {
-        case parse(path: String, cause: Error?)
+        case write(cause: Error?)
+        case read(cause: Error?)
     }
 
     private let repository: Repository
-    private let path: String
 
-    init(path: String = defaultPath, repository: Repository = RepositoryImpl()) {
-        self.path = path
+    init(repository: Repository = RepositoryImpl()) {
         self.repository = repository
     }
 
-    func saveGame(side: Side?, player1: PlayerSide, player2: PlayerSide, squaresState: SquaresState) throws {
-        let data = createSaveData(side: side, player1: player1, player2: player2, squaresState: squaresState)
-        try repository.saveData(path: path, data: data)
+    func encode(_ appState: AppState) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        return try encoder.encode(appState)
     }
 
-    func loadGame() throws -> LoadData {
-        let lines: ArraySlice<Substring> = try repository.loadData(path: path)
-        return try parseLoadData(lines: lines)
-    }
-
-    func createSaveData(side: Side?, player1: PlayerSide, player2: PlayerSide, squaresState: SquaresState) -> String {
-        var output: String = ""
-        output += side.symbol
-        output += player1.player.rawValue.description
-        output += player2.player.rawValue.description
-        output += "\n"
-
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                let disk: Disk? = squaresState.squareAt(x: x, y: y)?.disk
-                output += disk.symbol
-            }
-            output += "\n"
-        }
-        return output
-    }
-
-    func parseLoadData(lines: ArraySlice<Substring>) throws -> LoadData {
-        var lines = lines
-
-        guard var line = lines.popFirst() else {
-            throw PersistentError.parse(path: path, cause: nil)
-        }
-
-        // side
-        let side: Side?
+    func saveGame(_ appState: AppState) throws {
         do {
-            guard
-                let sideSymbol = line.popFirst(),
-                let s = Optional<Side>(symbol: sideSymbol.description)
-            else {
-                throw PersistentError.parse(path: path, cause: nil)
-            }
-            side = s
+            let data = try encode(appState)
+            try repository.saveData(data)
+        } catch let error {
+            throw PersistentError.read(cause: error)
         }
+    }
 
-        // players
-        let players: [Player] = try Side.allCases.map { _ in
-            guard
-                let playerSymbol = line.popFirst(),
-                let playerNumber = Int(playerSymbol.description),
-                let player = Player(rawValue: playerNumber)
-            else {
-                throw PersistentError.parse(path: path, cause: nil)
-            }
-            return player
-        }
-
-        // board
-        var squares: [(disk: Disk?, x: Int, y: Int)] = []
+    func loadGame() throws -> AppState {
         do {
-            guard lines.count == BoardConstant.height else {
-                throw PersistentError.parse(path: path, cause: nil)
-            }
-
-            var y = 0
-            while let line = lines.popFirst() {
-                var x = 0
-                for character in line {
-                    let disk = Disk?(symbol: "\(character)").flatMap { $0 }
-                    squares.append((disk: disk, x: x, y: y))
-                    x += 1
-                }
-                guard x == BoardConstant.width else {
-                    throw PersistentError.parse(path: path, cause: nil)
-                }
-                y += 1
-            }
-            guard y == BoardConstant.height else {
-                throw PersistentError.parse(path: path, cause: nil)
-            }
-        }
-
-        return LoadData(side: side, player1: players[0], player2: players[1], squares: squares)
-    }
-}
-
-
-extension Optional where Wrapped == Disk {
-    fileprivate init?<S: StringProtocol>(symbol: S) {
-        switch symbol {
-        case "x":
-            self = .some(.diskDark)
-        case "o":
-            self = .some(.diskLight)
-        case "-":
-            self = .none
-        default:
-            return nil
-        }
-    }
-
-    fileprivate var symbol: String {
-        switch self {
-        case .some(.diskDark):
-            return "x"
-        case .some(.diskLight):
-            return "o"
-        case .none:
-            return "-"
+            let data = try repository.loadData()
+            return try JSONDecoder().decode(AppState.self, from: data)
+        } catch let error {
+            throw PersistentError.write(cause: error)
         }
     }
 }
 
-extension Optional where Wrapped == Side {
-    fileprivate init?<S: StringProtocol>(symbol: S) {
-        switch symbol {
-        case "x":
-            self = .some(.sideDark)
-        case "o":
-            self = .some(.sideLight)
-        case "-":
+extension ComputerThinking { /* Codable */
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let value = try? container.decode(String.self, forKey: .none), value == CodingKeys.none.rawValue {
             self = .none
-        default:
-            return nil
+        } else if let value = try? container.decode(Side.self, forKey: .thinking) {
+            self = .thinking(value)
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Data doesn't match"))
         }
     }
 
-    fileprivate var symbol: String {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case .some(.sideDark):
-            return "x"
-        case .some(.sideLight):
-            return "o"
-        case .none:
-            return "-"
+        case .none: try container.encode(CodingKeys.none.rawValue, forKey: .none)
+        case .thinking(let disk): try container.encode(disk, forKey: .thinking)
         }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case none
+        case thinking
+    }
+}
+
+extension Coordinate { /* Codable */
+    enum CodingKeys: String, CodingKey {
+        case x
+        case y
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(x, forKey: .x)
+        try container.encode(y, forKey: .y)
     }
 }

@@ -34,6 +34,10 @@ class ViewController: UIViewController, StoreSubscriber {
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
         store.subscribe(subscriberSquareStates) { appState in appState.select { $0.boardState }.skipRepeats() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         loadGame()
     }
 
@@ -57,27 +61,20 @@ class ViewController: UIViewController, StoreSubscriber {
         }
     }
     private lazy var subscriberSquareStates = BlockSubscriber<BoardState>() { [unowned self] in
-        switch $0.animated {
-        case false:
+        switch $0.changed {
+        case .none:
             self.updateDisksForInitial($0.squares)
-        case true:
-            guard let s = $0.placedSquare else { return }
-            let diskCoordinates: [(Int, Int)] = $0.changedSquares.map { ($0.x, $0.y) }
-            self.updateDisks(s.disk, atX: s.x, y: s.y, diskCoordinates: diskCoordinates, animated: true) { [weak self] _ in
+        case .some(let changed):
+            self.updateDisks(changed.placedAt.disk, atX: changed.placedAt.x, y: changed.placedAt.y, diskCoordinates: changed.changedSquares.map { ($0.x, $0.y) }, animated: true) { [weak self] _ in
                 self?.nextTurn()
             }
         }
     }
     private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
-        switch $0 {
-        case .thinking(let side):
-            self.playerActivityIndicators[side.index].startAnimating()
-        case .none:
-            self.playerActivityIndicators.forEach { $0.stopAnimating() }
-        }
+        self.updatePlayerActivityIndicators(computerThinking: $0)
     }
     private lazy var subscriberShouldShowCannotPlaceDisk = BlockSubscriber<Trigger?>() { [unowned self] in
-        if $0 == nil { return }
+        guard $0 != nil else { return }
         self.showCannotPlaceDiskAlert()
     }
 }
@@ -173,6 +170,15 @@ extension ViewController {
                 }
                 completion(false)
             }
+        }
+    }
+
+    private func updatePlayerActivityIndicators(computerThinking: ComputerThinking) {
+        switch computerThinking {
+        case .thinking(let side):
+            self.playerActivityIndicators[side.index].startAnimating()
+        case .none:
+            self.playerActivityIndicators.forEach { $0.stopAnimating() }
         }
     }
 

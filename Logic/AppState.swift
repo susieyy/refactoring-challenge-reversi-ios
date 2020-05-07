@@ -26,6 +26,7 @@ public struct AppState: StateType, Codable {
     var id: String = NSUUID().uuidString
     var side: Side? = .sideDark
     var isInitialing: Bool = true
+    var isLoadedGame: Bool = false // prevent duplicate load game calls
 }
 
 func reducer(action: Action, state: AppState?) -> AppState {
@@ -42,7 +43,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
             var squaresState = state.boardState.squaresState
             let squares = [Square(disk: disk, x: x, y: y)] + diskCoordinates.map { Square(disk: disk, x: $0.0, y: $0.1) }
             squaresState.updateByPartialSquares(squares)
-            state.boardState = .init(squaresState: squaresState, placedSquare: PlacedSquare(disk: disk, x: x, y: y), changedSquares: changedSquares, animated: true)
+            let changed: BoardState.Changed = .init(placedAt: PlacedSquare(disk: disk, x: x, y: y), changedSquares: changedSquares)
+            state.boardState = .init(squaresState: squaresState, changed: changed)
             state.playerDark.count = state.boardState.squaresState.count(of: .diskDark)
             state.playerLight.count = state.boardState.squaresState.count(of: .diskLight)
         case .changeSquares(let squares):
@@ -75,17 +77,14 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
          case .resetAllState:
             var newState = AppState()
-            newState.isInitialing = true
-            newState.boardState = .init()
             newState.playerDark = .init(side: .sideDark, count: newState.boardState.squaresState.count(of: .diskDark))
             newState.playerLight = .init(side: .sideLight, count: newState.boardState.squaresState.count(of: .diskLight))
             return newState
          case .finisedLoadGame(let loadedAppState):
             var loadedAppState = loadedAppState
             loadedAppState.isInitialing = true
-            loadedAppState.boardState.placedSquare = nil
-            loadedAppState.boardState.changedSquares = []
-            loadedAppState.boardState.animated = false
+            loadedAppState.isLoadedGame = true
+            loadedAppState.boardState.changed = nil
             return loadedAppState
          case .finisedSaveGame:
             break
@@ -126,32 +125,32 @@ public struct PlayerSide: Equatable, Codable {
     public var count: Int = 0
 }
 
-let boardStateInital: [Square] = [
-    .init(disk: .diskLight, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
-    .init(disk: .diskDark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
-    .init(disk: .diskDark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
-    .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
-]
-
 public struct BoardState: StateType, Equatable, Codable {
+    public struct Changed: Equatable, Codable {
+        public let placedAt: PlacedSquare
+        public let changedSquares: [PlacedSquare]
+    }
     var squaresState: SquaresState
     public var squares: [Square] { squaresState.squares }
-    public var placedSquare: PlacedSquare?
-    public var changedSquares: [PlacedSquare]
-    public var animated: Bool
+    public var changed: Changed?
 
-    init(squaresState: SquaresState = .init(), placedSquare: PlacedSquare? = nil, changedSquares: [PlacedSquare] = [], animated: Bool = false) {
+    init(squaresState: SquaresState = .init(), changed: BoardState.Changed? = nil) {
         self.squaresState = squaresState
-        self.placedSquare = placedSquare
-        self.animated = animated
-        self.changedSquares = changedSquares
+        self.changed = changed
     }
 }
 
 public struct SquaresState: StateType, Equatable, Codable {
+    static let initalSquares: [Square] = [
+        .init(disk: .diskLight, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2 - 1),
+        .init(disk: .diskDark, x: BoardConstant.width / 2, y: BoardConstant.height / 2 - 1),
+        .init(disk: .diskDark, x: BoardConstant.width / 2 - 1, y: BoardConstant.height / 2),
+        .init(disk: .diskLight, x: BoardConstant.width / 2, y: BoardConstant.height / 2),
+    ]
+
     public var squares: [Square]
 
-    init(squares: [Square] = boardStateInital) {
+    init(squares: [Square] = initalSquares) {
         var temp: [Square] = (0 ..< BoardConstant.squaresCount).map {
             Square(x: $0 % BoardConstant.width, y: Int($0 / BoardConstant.width))
         }
@@ -314,6 +313,7 @@ extension AppAction {
 
     public static func loadGame() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
+            guard getState()?.isLoadedGame == false else { return }
             print("- Logic.AppAction.loadGame() START")
             do {
                 dispatch(AppPrivateAction.resetAllState)

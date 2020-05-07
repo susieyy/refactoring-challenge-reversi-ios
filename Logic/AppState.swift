@@ -101,6 +101,19 @@ public struct Trigger: Equatable, Codable {
     let uuid: String = NSUUID().uuidString
 }
 
+public enum CurrentTurn: Equatable {
+    case initialing
+    case turn(Side, Player)
+    case gameOverWon(Side)
+    case gameOverTied
+}
+
+public struct PlayerSide: Equatable, Codable {
+    public var player: Player = .manual
+    public var side: Side
+    public var count: Int = 0
+}
+
 public enum ComputerThinking: Equatable, Codable {
     case none
     case thinking(Side)
@@ -119,20 +132,14 @@ public struct Square: Equatable, Codable {
     var index: Int { y * BoardConstant.width + x }
 }
 
-public struct PlayerSide: Equatable, Codable {
-    public var player: Player = .manual
-    public var side: Side
-    public var count: Int = 0
-}
-
 public struct BoardState: StateType, Equatable, Codable {
     public struct Changed: Equatable, Codable {
         public let placedAt: PlacedSquare
         public let changedSquares: [PlacedSquare]
     }
-    var squaresState: SquaresState
     public var squares: [Square] { squaresState.squares }
     public var changed: Changed?
+    var squaresState: SquaresState
 
     init(squaresState: SquaresState = .init(), changed: BoardState.Changed? = nil) {
         self.squaresState = squaresState
@@ -167,24 +174,9 @@ extension SquaresState {
     }
 
     func count(of disk: Disk) -> Int {
-        var count = 0
-        for y in BoardConstant.yRange {
-            for x in BoardConstant.xRange {
-                if squareAt(x: x, y: y)?.disk == disk {
-                    count +=  1
-                }
-            }
-        }
-        return count
+        squares.reduce(0) { $0 + ($1.disk == disk ? 1 : 0) }
     }
 
-    func squareAt(x: Int, y: Int) -> Square? {
-        guard BoardConstant.xRange.contains(x) && BoardConstant.yRange.contains(y) else { return nil }
-        return squares[y * BoardConstant.width + x]
-    }
-}
-
-extension SquaresState {
     func sideWithMoreDisks() -> Side? {
         let darkCount = count(of: .diskDark)
         let lightCount = count(of: .diskLight)
@@ -193,10 +185,6 @@ extension SquaresState {
         } else {
             return darkCount > lightCount ? .sideDark : .sideLight
         }
-    }
-
-    private func canPlaceDisk(_ disk: Disk, atX x: Int, y: Int) -> Bool {
-        !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
     }
 
     func validMoves(for side: Side) -> [(x: Int, y: Int)] {
@@ -251,6 +239,15 @@ extension SquaresState {
         }
 
         return diskCoordinates
+    }
+
+    private func squareAt(x: Int, y: Int) -> Square? {
+        guard BoardConstant.xRange.contains(x) && BoardConstant.yRange.contains(y) else { return nil }
+        return squares[y * BoardConstant.width + x]
+    }
+
+    private func canPlaceDisk(_ disk: Disk, atX x: Int, y: Int) -> Bool {
+        !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
     }
 }
 

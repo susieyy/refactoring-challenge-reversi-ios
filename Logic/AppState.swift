@@ -275,7 +275,6 @@ extension AppAction {
             do {
                 guard var state = getState() else { return }
                 state.isInitialing = true
-                state.isLoadedGame = true
                 state.boardState.changed = nil
                 state.computerThinking = .none
                 state.isShowingRestConfrmation = false

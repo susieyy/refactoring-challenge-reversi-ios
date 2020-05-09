@@ -1,0 +1,32 @@
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - '**'
+env:
+  project_nmae: Reversi
+  scheme: Reversi
+  configuration: Debug
+
+name: Xcode build
+jobs:
+  validate:
+    name: Validate
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        destination:
+          - "platform=iOS Simulator,OS=13.4.1,name=iPhone 11 Pro"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Switch to workspace directory
+        run: cd $GITHUB_WORKSPACE
+      - name: Install tooling
+        run: sudo xcode-select -s /Applications/Xcode_11.4.1.app
+      - name: Resolve swift package dependencies
+        run: xcodebuild -resolvePackageDependencies -scheme '${{ env.scheme }}' -clonedSourcePackagesDirPath ./.swiftpackages -derivedDataPath ./.build
+      - name: Run tests ${{ matrix.destination }}
+        run: xcodebuild -sdk iphonesimulator -scheme '${{ env.scheme }}' -configuration '${{ env.configuration }}' -destination '${{ matrix.destination }}' -clonedSourcePackagesDirPath ./.swiftpackages -derivedDataPath ./.build clean test | xcpretty

@@ -28,7 +28,8 @@
 		AA3FFD7B2467FF0A00D4F3FB /* ComputerThinking.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */; };
 		AA3FFD7D2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */; };
 		AA3FFD7F2467FF3800D4F3FB /* OptionalDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */; };
-		AA3FFD812467FF5E00D4F3FB /* BoardChanged.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD802467FF5E00D4F3FB /* BoardChanged.swift */; };
+		AA3FFD812467FF5E00D4F3FB /* BoardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */; };
+		AA3FFD8324680DCE00D4F3FB /* DebugDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD8224680DCE00D4F3FB /* DebugDescription.swift */; };
 		AA98C6142463ACAD00BF867E /* Coordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA98C6132463ACAD00BF867E /* Coordinate.swift */; };
 		AAB5EE2C2453239200B1AC43 /* Side.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB5EE2B2453239200B1AC43 /* Side.swift */; };
 		D636B39F23D35043007F370F /* DiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636B39E23D35043007F370F /* DiskView.swift */; };
@@ -109,7 +110,8 @@
 		AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerThinking.swift; sourceTree = "<group>"; };
 		AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacedDiskCoordinate.swift; sourceTree = "<group>"; };
 		AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionalDiskCoordinate.swift; sourceTree = "<group>"; };
-		AA3FFD802467FF5E00D4F3FB /* BoardChanged.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardChanged.swift; sourceTree = "<group>"; };
+		AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardContainer.swift; sourceTree = "<group>"; };
+		AA3FFD8224680DCE00D4F3FB /* DebugDescription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDescription.swift; sourceTree = "<group>"; };
 		AA98C6132463ACAD00BF867E /* Coordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinate.swift; sourceTree = "<group>"; };
 		AAB5EE2B2453239200B1AC43 /* Side.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Side.swift; sourceTree = "<group>"; };
 		D636B39E23D35043007F370F /* DiskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskView.swift; sourceTree = "<group>"; };
@@ -200,7 +202,8 @@
 				AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */,
 				AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */,
 				AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */,
-				AA3FFD802467FF5E00D4F3FB /* BoardChanged.swift */,
+				AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */,
+				AA3FFD8224680DCE00D4F3FB /* DebugDescription.swift */,
 			);
 			path = DataTypes;
 			sourceTree = "<group>";
@@ -451,8 +454,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA3FFD8324680DCE00D4F3FB /* DebugDescription.swift in Sources */,
 				AA3FFD7F2467FF3800D4F3FB /* OptionalDiskCoordinate.swift in Sources */,
-				AA3FFD812467FF5E00D4F3FB /* BoardChanged.swift in Sources */,
+				AA3FFD812467FF5E00D4F3FB /* BoardContainer.swift in Sources */,
 				AA308D7B243F1FA30041763B /* AnimationState.swift in Sources */,
 				AAB5EE2C2453239200B1AC43 /* Side.swift in Sources */,
 				AA308D73243F1F700041763B /* BoardSetting.swift in Sources */,

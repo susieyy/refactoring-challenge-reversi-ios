@@ -25,24 +25,24 @@ class LogicTests: XCTestCase {
     }
 
     func testBoardSetting() throws {
-        XCTAssertEqual(8, store.state.boardSetting.cols)
-        XCTAssertEqual(8, store.state.boardSetting.rows)
-        XCTAssertEqual(64, store.state.boardSetting.coordinates.count)
+        XCTAssertEqual(8, store.state.boardContainer.boardSetting.cols)
+        XCTAssertEqual(8, store.state.boardContainer.boardSetting.rows)
+        XCTAssertEqual(64, store.state.boardContainer.boardSetting.coordinates.count)
 
         // (0, 0) ~ (7, 7)
         (0..<8).forEach { x in
             (0..<8).forEach { y in
-                XCTAssertEqual(true, store.state.boardSetting.validCoordinate(Coordinate(x: x, y: y)))
+                XCTAssertEqual(true, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: x, y: y)))
             }
         }
 
-        XCTAssertEqual(false, store.state.boardSetting.validCoordinate(Coordinate(x: -1, y: 0)))
-        XCTAssertEqual(false, store.state.boardSetting.validCoordinate(Coordinate(x: 0, y: -1)))
-        XCTAssertEqual(false, store.state.boardSetting.validCoordinate(Coordinate(x: -1, y: -1)))
+        XCTAssertEqual(false, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: -1, y: 0)))
+        XCTAssertEqual(false, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: 0, y: -1)))
+        XCTAssertEqual(false, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: -1, y: -1)))
 
-        XCTAssertEqual(false, store.state.boardSetting.validCoordinate(Coordinate(x: 8, y: 7)))
-        XCTAssertEqual(false, store.state.boardSetting.validCoordinate(Coordinate(x: 7, y: 8)))
-        XCTAssertEqual(false, store.state.boardSetting.validCoordinate(Coordinate(x: 8, y: 8)))
+        XCTAssertEqual(false, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: 8, y: 7)))
+        XCTAssertEqual(false, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: 7, y: 8)))
+        XCTAssertEqual(false, store.state.boardContainer.boardSetting.validCoordinate(Coordinate(x: 8, y: 8)))
     }
 
     func testInitial() throws {
@@ -57,10 +57,10 @@ class LogicTests: XCTestCase {
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideDark, count: 0), store.state.playerDark)
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideLight, count: 0), store.state.playerLight)
 
-        XCTAssertEqual(nil, store.state.board.changed)
-        XCTAssertEqual(nil, store.state.board.changed)
+        XCTAssertEqual(nil, store.state.boardContainer.changed)
+        XCTAssertEqual(nil, store.state.boardContainer.changed)
 
-        let diskCoordinatesState = store.state.board.diskCoordinatesState
+        let diskCoordinatesState = store.state.boardContainer.board
         XCTAssertEqual(nil, diskCoordinatesState.sideWithMoreDisks())
         XCTAssertEqual(2, diskCoordinatesState.count(of: .diskDark))
         XCTAssertEqual(2, diskCoordinatesState.count(of: .diskLight))
@@ -79,39 +79,6 @@ class LogicTests: XCTestCase {
         6--------
         7--------
         """
-        XCTAssertEqual(expectationInitialDiskCoordinatesState, diskCoordinatesState.description)
-    }
-}
-
-extension Optional where Wrapped == Disk {
-    var symbol: String {
-        switch self {
-        case .some(.diskDark):
-            return "x"
-        case .some(.diskLight):
-            return "o"
-        case .none:
-            return "-"
-        }
-    }
-}
-
-extension DiskCoordinatesState: CustomStringConvertible {
-    public var description: String {
-        var str = ""
-        str.append("@")
-        (0..<8).forEach { x in
-            str.append(String(describing: x))
-        }
-        str.append("\n")
-
-        (0..<8).forEach { y in
-            str.append(String(describing: y))
-            (0..<8).forEach { x in
-                str.append(self[Coordinate(x: x, y: y)]!.disk.symbol)
-           }
-            str.append("\n")
-        }
-        return String(str.dropLast())
+        XCTAssertEqual(expectationInitialDiskCoordinatesState, diskCoordinatesState.debugDescription)
     }
 }

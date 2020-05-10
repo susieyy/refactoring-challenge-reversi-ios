@@ -93,53 +93,6 @@ func reducer(action: Action, state: AppState?) -> AppState {
     return state
 }
 
-public struct Trigger: Equatable, Codable {
-    let uuid: String = NSUUID().uuidString
-}
-
-public enum CurrentTurn: Equatable {
-    case initialing
-    case turn(Side, Player)
-    case gameOverWon(Side)
-    case gameOverTied
-}
-
-public struct PlayerSide: Equatable, Codable {
-    public var player: Player = .manual
-    public var side: Side
-    public var count: Int = 0
-}
-
-public enum ComputerThinking: Equatable, Codable {
-    case none
-    case thinking(Side)
-}
-
-public struct PlacedDiskCoordinate: Equatable, Codable {
-    public var disk: Disk
-    public var coordinate: Coordinate
-
-    public init(disk: Disk, coordinate: Coordinate) {
-        self.disk = disk
-        self.coordinate = coordinate
-    }
-}
-
-extension PlacedDiskCoordinate {
-    var optionalDiskCoordinate: OptionalDiskCoordinate { OptionalDiskCoordinate(disk: disk, coordinate: coordinate) }
-}
-
-public struct OptionalDiskCoordinate: Equatable, Codable {
-    public var disk: Disk?
-    public var coordinate: Coordinate
-}
-
-public struct BoardChanged: Equatable, Codable {
-    public let placedDiskCoordinate: PlacedDiskCoordinate
-    public let flippedDiskCoordinates: [PlacedDiskCoordinate]
-    public var changedDiskCoordinate: [PlacedDiskCoordinate] { [placedDiskCoordinate] + flippedDiskCoordinates }
-}
-
 public struct BoardState: StateType, Equatable, Codable {
     public var diskCoordinates: [OptionalDiskCoordinate] { diskCoordinatesState.diskCoordinates }
     public var changed: BoardChanged?

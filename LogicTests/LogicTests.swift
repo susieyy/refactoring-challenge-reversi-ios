@@ -57,10 +57,10 @@ class LogicTests: XCTestCase {
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideDark, count: 0), store.state.playerDark)
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideLight, count: 0), store.state.playerLight)
 
-        XCTAssertEqual(nil, store.state.boardState.changed)
-        XCTAssertEqual(nil, store.state.boardState.changed)
+        XCTAssertEqual(nil, store.state.board.changed)
+        XCTAssertEqual(nil, store.state.board.changed)
 
-        let diskCoordinatesState = store.state.boardState.diskCoordinatesState
+        let diskCoordinatesState = store.state.board.diskCoordinatesState
         XCTAssertEqual(nil, diskCoordinatesState.sideWithMoreDisks())
         XCTAssertEqual(2, diskCoordinatesState.count(of: .diskDark))
         XCTAssertEqual(2, diskCoordinatesState.count(of: .diskLight))

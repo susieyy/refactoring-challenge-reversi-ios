@@ -2,7 +2,7 @@ import Foundation
 import ReSwift
 
 public struct AppState: StateType, Codable {
-    public var boardState: BoardState
+    public var board: Board
     public var playerDark: PlayerSide = .init(side: .sideDark)
     public var playerLight: PlayerSide = .init(side: .sideLight)
     public var computerThinking: ComputerThinking = .none
@@ -16,13 +16,13 @@ public struct AppState: StateType, Codable {
             case .sideDark: return .turn(side, playerDark.player)
             case .sideLight: return .turn(side, playerLight.player)
             }
-        } else if let winnerSide = boardState.diskCoordinatesState.sideWithMoreDisks() {
+        } else if let winnerSide = board.diskCoordinatesState.sideWithMoreDisks() {
             return .gameOverWon(winnerSide)
         } else {
             return .gameOverTied
         }
     }
-    public var boardSetting: BoardSetting { boardState.diskCoordinatesState.boardSetting }
+    public var boardSetting: BoardSetting { board.diskCoordinatesState.boardSetting }
 
     var id: String = NSUUID().uuidString // prevent override uing reseted state
     var side: Side? = .sideDark
@@ -30,7 +30,7 @@ public struct AppState: StateType, Codable {
     var isLoadedGame: Bool = false // prevent duplicate load game calls
 
     init(boardSetting: BoardSetting = .init(cols: 8, rows: 8)) {
-        self.boardState = .init(diskCoordinatesState: DiskCoordinatesState(boardSetting: boardSetting))
+        self.board = .init(diskCoordinatesState: DiskCoordinatesState(boardSetting: boardSetting))
     }
 }
 
@@ -42,14 +42,14 @@ func reducer(action: Action, state: AppState?) -> AppState {
         case .start:
             state.isInitialing = false
         case .placeDisk(let placedDiskCoordinate):
-            let flippedDiskCoordinates = state.boardState.diskCoordinatesState.flippedDiskCoordinatesByPlacingDisk(placedDiskCoordinate)
+            let flippedDiskCoordinates = state.board.diskCoordinatesState.flippedDiskCoordinatesByPlacingDisk(placedDiskCoordinate)
             guard !flippedDiskCoordinates.isEmpty else { return state }
 
             let changed: BoardChanged = .init(placedDiskCoordinate: placedDiskCoordinate, flippedDiskCoordinates: flippedDiskCoordinates)
-            changed.changedDiskCoordinate.forEach { state.boardState.diskCoordinatesState[$0.coordinate] = $0.optionalDiskCoordinate }
-            state.boardState.changed = changed
-            state.playerDark.count = state.boardState.diskCoordinatesState.count(of: .diskDark)
-            state.playerLight.count = state.boardState.diskCoordinatesState.count(of: .diskLight)
+            changed.changedDiskCoordinate.forEach { state.board.diskCoordinatesState[$0.coordinate] = $0.optionalDiskCoordinate }
+            state.board.changed = changed
+            state.playerDark.count = state.board.diskCoordinatesState.count(of: .diskDark)
+            state.playerLight.count = state.board.diskCoordinatesState.count(of: .diskLight)
         case .didShowCannotPlaceDisk:
             state.shouldShowCannotPlaceDisk = nil
         case .showingConfirmation(let isShowing):
@@ -64,8 +64,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
              guard let temp = state.side else { return state }
              let side = temp.flipped
              state.side = side
-             guard state.boardState.diskCoordinatesState.validMoves(for: side).isEmpty else { return state }
-             if state.boardState.diskCoordinatesState.validMoves(for: side.flipped).isEmpty {
+             guard state.board.diskCoordinatesState.validMoves(for: side).isEmpty else { return state }
+             if state.board.diskCoordinatesState.validMoves(for: side.flipped).isEmpty {
                  state.side = nil // GameOver
              } else {
                  state.shouldShowCannotPlaceDisk = .init()
@@ -77,8 +77,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
             }
          case .resetAllState:
             var newState = AppState()
-            newState.playerDark = .init(side: .sideDark, count: newState.boardState.diskCoordinatesState.count(of: .diskDark))
-            newState.playerLight = .init(side: .sideLight, count: newState.boardState.diskCoordinatesState.count(of: .diskLight))
+            newState.playerDark = .init(side: .sideDark, count: newState.board.diskCoordinatesState.count(of: .diskDark))
+            newState.playerLight = .init(side: .sideLight, count: newState.board.diskCoordinatesState.count(of: .diskLight))
             return newState
          case .finisedLoadGame(let loadedAppState):
             return loadedAppState
@@ -93,7 +93,7 @@ func reducer(action: Action, state: AppState?) -> AppState {
     return state
 }
 
-public struct BoardState: StateType, Equatable, Codable {
+public struct Board: Equatable, Codable {
     public var diskCoordinates: [OptionalDiskCoordinate] { diskCoordinatesState.diskCoordinates }
     public var changed: BoardChanged?
     var diskCoordinatesState: DiskCoordinatesState
@@ -234,7 +234,7 @@ extension AppAction {
             do {
                 guard var state = getState() else { return }
                 state.isInitialing = true
-                state.boardState.changed = nil
+                state.board.changed = nil
                 state.computerThinking = .none
                 state.isShowingRestConfrmation = false
                 try dependency.persistentInteractor.saveGame(state)
@@ -324,7 +324,7 @@ extension AppAction {
             case .initialing:
                 break
             case .turn(let side, _):
-                let candidates = state.boardState.diskCoordinatesState.validMoves(for: side)
+                let candidates = state.board.diskCoordinatesState.validMoves(for: side)
                 switch candidates.isEmpty {
                 case true:
                     dispatch(AppAction.nextTurn())

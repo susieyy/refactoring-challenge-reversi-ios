@@ -22,6 +22,14 @@
 		AA308D85243F3B440041763B /* ReSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AA308D84243F3B440041763B /* ReSwift */; };
 		AA308D87243F3B5B0041763B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D86243F3B5B0041763B /* AppState.swift */; };
 		AA308D8B243F40CE0041763B /* ViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = AA308D89243F40CE0041763B /* ViewController.xib */; };
+		AA3FFD752467FBC500D4F3FB /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD742467FBC500D4F3FB /* Trigger.swift */; };
+		AA3FFD772467FEB200D4F3FB /* CurrentTurn.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD762467FEB200D4F3FB /* CurrentTurn.swift */; };
+		AA3FFD792467FEDB00D4F3FB /* PlayerSide.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */; };
+		AA3FFD7B2467FF0A00D4F3FB /* ComputerThinking.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */; };
+		AA3FFD7D2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */; };
+		AA3FFD7F2467FF3800D4F3FB /* OptionalDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */; };
+		AA3FFD812467FF5E00D4F3FB /* BoardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */; };
+		AA3FFD8324680DCE00D4F3FB /* DebugDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD8224680DCE00D4F3FB /* DebugDescription.swift */; };
 		AA98C6142463ACAD00BF867E /* Coordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA98C6132463ACAD00BF867E /* Coordinate.swift */; };
 		AAB5EE2C2453239200B1AC43 /* Side.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB5EE2B2453239200B1AC43 /* Side.swift */; };
 		D636B39F23D35043007F370F /* DiskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D636B39E23D35043007F370F /* DiskView.swift */; };
@@ -96,6 +104,14 @@
 		AA308D7A243F1FA30041763B /* PersistentInteractor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersistentInteractor.swift; sourceTree = "<group>"; };
 		AA308D86243F3B5B0041763B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		AA308D89243F40CE0041763B /* ViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ViewController.xib; sourceTree = "<group>"; };
+		AA3FFD742467FBC500D4F3FB /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
+		AA3FFD762467FEB200D4F3FB /* CurrentTurn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentTurn.swift; sourceTree = "<group>"; };
+		AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSide.swift; sourceTree = "<group>"; };
+		AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerThinking.swift; sourceTree = "<group>"; };
+		AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacedDiskCoordinate.swift; sourceTree = "<group>"; };
+		AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionalDiskCoordinate.swift; sourceTree = "<group>"; };
+		AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardContainer.swift; sourceTree = "<group>"; };
+		AA3FFD8224680DCE00D4F3FB /* DebugDescription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDescription.swift; sourceTree = "<group>"; };
 		AA98C6132463ACAD00BF867E /* Coordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinate.swift; sourceTree = "<group>"; };
 		AAB5EE2B2453239200B1AC43 /* Side.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Side.swift; sourceTree = "<group>"; };
 		D636B39E23D35043007F370F /* DiskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskView.swift; sourceTree = "<group>"; };
@@ -180,6 +196,14 @@
 				AA308D70243F1F700041763B /* Player.swift */,
 				AA308D6E243F1F700041763B /* BoardSetting.swift */,
 				AA308D6F243F1F700041763B /* Canceller.swift */,
+				AA3FFD742467FBC500D4F3FB /* Trigger.swift */,
+				AA3FFD762467FEB200D4F3FB /* CurrentTurn.swift */,
+				AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */,
+				AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */,
+				AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */,
+				AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */,
+				AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */,
+				AA3FFD8224680DCE00D4F3FB /* DebugDescription.swift */,
 			);
 			path = DataTypes;
 			sourceTree = "<group>";
@@ -430,15 +454,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA3FFD8324680DCE00D4F3FB /* DebugDescription.swift in Sources */,
+				AA3FFD7F2467FF3800D4F3FB /* OptionalDiskCoordinate.swift in Sources */,
+				AA3FFD812467FF5E00D4F3FB /* BoardContainer.swift in Sources */,
 				AA308D7B243F1FA30041763B /* AnimationState.swift in Sources */,
 				AAB5EE2C2453239200B1AC43 /* Side.swift in Sources */,
 				AA308D73243F1F700041763B /* BoardSetting.swift in Sources */,
 				AA308D7F243F1FA30041763B /* PersistentInteractor.swift in Sources */,
+				AA3FFD7B2467FF0A00D4F3FB /* ComputerThinking.swift in Sources */,
 				AA308D71243F1F700041763B /* Disk.swift in Sources */,
+				AA3FFD7D2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift in Sources */,
 				AA308D87243F3B5B0041763B /* AppState.swift in Sources */,
+				AA3FFD752467FBC500D4F3FB /* Trigger.swift in Sources */,
 				AA308D75243F1F700041763B /* Player.swift in Sources */,
+				AA3FFD772467FEB200D4F3FB /* CurrentTurn.swift in Sources */,
 				AA308D74243F1F700041763B /* Canceller.swift in Sources */,
 				AA98C6142463ACAD00BF867E /* Coordinate.swift in Sources */,
+				AA3FFD792467FEDB00D4F3FB /* PlayerSide.swift in Sources */,
 				AA308D7E243F1FA30041763B /* Repository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

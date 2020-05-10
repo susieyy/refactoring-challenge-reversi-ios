@@ -28,13 +28,13 @@ class ViewController: UIViewController, StoreSubscriber {
     override func viewDidLoad() {
         super.viewDidLoad()
         boardView.delegate = self
-        boardView.setUp(boardSetting: store.state.boardSetting)
+        boardView.setUp(boardSetting: store.state.boardContainer.boardSetting)
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
         store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
-        store.subscribe(subscriberBoardState) { appState in appState.select { $0.boardState }.skipRepeats() }
+        store.subscribe(subscriberBoardContainer) { appState in appState.select { $0.boardContainer }.skipRepeats() }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -61,7 +61,7 @@ class ViewController: UIViewController, StoreSubscriber {
             break
         }
     }
-    private lazy var subscriberBoardState = BlockSubscriber<BoardState>() { [unowned self] in
+    private lazy var subscriberBoardContainer = BlockSubscriber<BoardContainer>() { [unowned self] in
         switch $0.changed {
         case .none:
             self.updateDisksForInitial($0.diskCoordinates)

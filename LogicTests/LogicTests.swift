@@ -52,7 +52,7 @@ class LogicTests: XCTestCase {
         XCTAssertEqual(.sideDark, store.state.side)
         XCTAssertEqual(nil, store.state.shouldShowCannotPlaceDisk)
         XCTAssertEqual(false, store.state.isShowingRestConfrmation)
-        XCTAssertEqual(CurrentTurn.initialing, store.state.currentTurn)
+        XCTAssertEqual(GameProgress.initialing, store.state.gameProgress)
 
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideDark, count: 0), store.state.playerDark)
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideLight, count: 0), store.state.playerLight)

@@ -8,7 +8,7 @@ public struct AppState: StateType, Codable {
     public var computerThinking: ComputerThinking = .none
     public var shouldShowCannotPlaceDisk: Trigger?
     public var isShowingRestConfrmation: Bool = false
-    public var currentTurn: CurrentTurn {
+    public var gameProgress: GameProgress {
         if isInitialing {
             return .initialing
         } else if let side = side {
@@ -17,9 +17,9 @@ public struct AppState: StateType, Codable {
             case .sideLight: return .turn(side, playerLight.player)
             }
         } else if let winnerSide = boardContainer.board.sideWithMoreDisks() {
-            return .gameOverWon(winnerSide)
+            return .gameOver(.won(winnerSide))
         } else {
-            return .gameOverTied
+            return .gameOver(.tied)
         }
     }
 
@@ -171,7 +171,7 @@ extension AppAction {
     public static func nextTurn() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
             guard let appSate = getState() else { return }
-            if case .turn(let side, _) = appSate.currentTurn {
+            if case .turn(let side, _) = appSate.gameProgress {
                 print("- Logic.AppAction.nextTurn() from: \(side) to: \(side.flipped)")
             }
             dispatch(AppPrivateAction.nextTurn)
@@ -183,7 +183,7 @@ extension AppAction {
             print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) START")
             guard let appSate = getState() else { return }
             if case .manual = player {
-                guard case .turn(let currentSide, _) = appSate.currentTurn else { return }
+                guard case .turn(let currentSide, _) = appSate.gameProgress else { return }
                 if side == currentSide {
                     dispatch(AppPrivateAction.endComputerThinking)
                 }
@@ -198,7 +198,7 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.waitForPlayer() START")
             guard let state = getState() else { return }
-            switch state.currentTurn {
+            switch state.gameProgress {
             case .initialing:
                 break
             case .turn(_, let player):
@@ -208,7 +208,7 @@ extension AppAction {
                 case .computer:
                     dispatch(AppAction.playTurnOfComputer())
                 }
-            case .gameOverWon, .gameOverTied:
+            case .gameOver:
                 preconditionFailure()
             }
             print("- Logic.AppAction.waitForPlayer() END")
@@ -223,7 +223,7 @@ extension AppAction {
                 return
             }
 
-            switch state.currentTurn {
+            switch state.gameProgress {
             case .initialing:
                 break
             case .turn(let side, _):
@@ -245,7 +245,7 @@ extension AppAction {
                         dispatch(AppAction.placeDisk(candidate))
                     }
                 }
-            case .gameOverWon, .gameOverTied:
+            case .gameOver:
                 preconditionFailure()
             }
             print("- Logic.AppAction.playTurnOfComputer() END")

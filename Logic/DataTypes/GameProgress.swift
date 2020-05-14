@@ -7,9 +7,9 @@ public enum GameProgress: Equatable {
     case interrupt(Interrupt)
 }
 
-public enum ComputerThinking: Equatable, Codable {
+public enum ComputerThinking: String, Equatable, Codable {
     case none
-    case thinking(Side)
+    case thinking
 }
 
 public enum Progress: Equatable {

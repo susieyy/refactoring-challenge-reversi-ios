@@ -25,7 +25,6 @@
 		AA3FFD752467FBC500D4F3FB /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD742467FBC500D4F3FB /* Trigger.swift */; };
 		AA3FFD772467FEB200D4F3FB /* GameProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD762467FEB200D4F3FB /* GameProgress.swift */; };
 		AA3FFD792467FEDB00D4F3FB /* PlayerSide.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */; };
-		AA3FFD7B2467FF0A00D4F3FB /* ComputerThinking.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */; };
 		AA3FFD7D2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */; };
 		AA3FFD7F2467FF3800D4F3FB /* OptionalDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */; };
 		AA3FFD812467FF5E00D4F3FB /* BoardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */; };
@@ -107,7 +106,6 @@
 		AA3FFD742467FBC500D4F3FB /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
 		AA3FFD762467FEB200D4F3FB /* GameProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameProgress.swift; sourceTree = "<group>"; };
 		AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSide.swift; sourceTree = "<group>"; };
-		AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerThinking.swift; sourceTree = "<group>"; };
 		AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacedDiskCoordinate.swift; sourceTree = "<group>"; };
 		AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionalDiskCoordinate.swift; sourceTree = "<group>"; };
 		AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardContainer.swift; sourceTree = "<group>"; };
@@ -198,7 +196,6 @@
 				AA3FFD742467FBC500D4F3FB /* Trigger.swift */,
 				AA3FFD762467FEB200D4F3FB /* GameProgress.swift */,
 				AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */,
-				AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */,
 				AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */,
 				AA3FFD7E2467FF3800D4F3FB /* OptionalDiskCoordinate.swift */,
 				AA3FFD802467FF5E00D4F3FB /* BoardContainer.swift */,
@@ -461,7 +458,6 @@
 				AAB5EE2C2453239200B1AC43 /* Side.swift in Sources */,
 				AA308D73243F1F700041763B /* BoardSetting.swift in Sources */,
 				AA308D7F243F1FA30041763B /* PersistentInteractor.swift in Sources */,
-				AA3FFD7B2467FF0A00D4F3FB /* ComputerThinking.swift in Sources */,
 				AA308D71243F1F700041763B /* Disk.swift in Sources */,
 				AA3FFD7D2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift in Sources */,
 				AA308D87243F3B5B0041763B /* AppState.swift in Sources */,

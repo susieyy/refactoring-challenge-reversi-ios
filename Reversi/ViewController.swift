@@ -14,7 +14,6 @@ class ViewController: UIViewController, StoreSubscriber {
     private let animationState: AnimationState = .init()
     private let store: Store<AppState>
 
-
     init(store: Store<AppState> = Logic.store) {
         self.store = store
         super.init(nibName: nil, bundle: nil)
@@ -33,7 +32,6 @@ class ViewController: UIViewController, StoreSubscriber {
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
         store.subscribe(subscriberGameProgress) { appState in appState.select { $0.gameProgress }.skipRepeats() }
-        store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberBoardContainer) { appState in appState.select { $0.boardContainer }.skipRepeats() }
     }
 
@@ -55,7 +53,8 @@ class ViewController: UIViewController, StoreSubscriber {
         case .initialing:
             self.animationState.cancelAll()
             self.start()
-        case .turn(let progress, _ , _):
+        case .turn(let progress, let side, _, let computerThinking):
+            self.updatePlayerActivityIndicators(side: side, computerThinking: computerThinking)
             switch progress {
             case .start:
                 self.waitForPlayer()
@@ -92,9 +91,6 @@ class ViewController: UIViewController, StoreSubscriber {
                 self?.nextTurn()
             }
         }
-    }
-    private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
-        self.updatePlayerActivityIndicators(computerThinking: $0)
     }
 }
 
@@ -204,9 +200,9 @@ extension ViewController {
         }
     }
 
-    private func updatePlayerActivityIndicators(computerThinking: ComputerThinking) {
+    private func updatePlayerActivityIndicators(side: Side, computerThinking: ComputerThinking) {
         switch computerThinking {
-        case .thinking(let side):
+        case .thinking:
             self.playerActivityIndicators[side.index].startAnimating()
         case .none:
             self.playerActivityIndicators.forEach { $0.stopAnimating() }
@@ -234,7 +230,7 @@ extension ViewController {
         switch gameProgress {
         case .initialing, .interrupt:
             break
-        case .turn(_, let side, _):
+        case .turn(_, let side, _, _):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side.disk
             messageLabel.text = "'s turn"
@@ -305,7 +301,7 @@ extension ViewController {
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAt coordinate: Coordinate) {
         if animationState.isAnimating { return }
-        guard case .turn(_, let side, let player) = store.state.gameProgress else { return }
+        guard case .turn(_, let side, let player, _) = store.state.gameProgress else { return }
         guard case .manual = player else { return }
         placeDisk(PlacedDiskCoordinate(disk: side.disk, coordinate: coordinate))
     }

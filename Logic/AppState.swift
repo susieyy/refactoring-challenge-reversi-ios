@@ -5,7 +5,6 @@ public struct AppState: StateType, Codable {
     public var boardContainer: BoardContainer
     public var playerDark: PlayerSide = .init(side: .sideDark)
     public var playerLight: PlayerSide = .init(side: .sideLight)
-    public var computerThinking: ComputerThinking = .none
     public var gameProgress: GameProgress {
         if isInitialing {
             return .initialing
@@ -15,10 +14,12 @@ public struct AppState: StateType, Codable {
             return .interrupt(.resetConfrmation(resetConfrmationAlert))
         } else if let side = side {
             let progress: Progress = turnStart ? .start : .progressing
+            let player: Player
             switch side {
-            case .sideDark: return .turn(progress, side, playerDark.player)
-            case .sideLight: return .turn(progress, side, playerLight.player)
+            case .sideDark: player = playerDark.player
+            case .sideLight: player = playerLight.player
             }
+            return .turn(progress, side, player, computerThinking)
         } else if let winnerSide = boardContainer.board.sideWithMoreDisks() {
             return .gameOver(.won(winnerSide))
         } else {
@@ -31,6 +32,7 @@ public struct AppState: StateType, Codable {
     var turnStart: Bool = false
     var isInitialing: Bool = true
     var isLoadedGame: Bool = false // prevent duplicate load game calls
+    var computerThinking: ComputerThinking = .none
     var cannotPlaceDiskAlert: Alert = .none
     var resetConfrmationAlert: Alert = .none
 
@@ -189,7 +191,7 @@ extension AppAction {
     public static func nextTurn() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
             guard let state = getState() else { return }
-            if case .turn(_, let side, _) = state.gameProgress {
+            if case .turn(_, let side, _, _) = state.gameProgress {
                 print("- Logic.AppAction.nextTurn() from: \(side) to: \(side.flipped)")
             }
             dispatch(AppPrivateAction.nextTurn)
@@ -202,7 +204,7 @@ extension AppAction {
             print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) START")
             guard let state = getState() else { return }
             if case .manual = player {
-                guard case .turn(_, let currentSide, _) = state.gameProgress else { return }
+                guard case .turn(_, let currentSide, _, _) = state.gameProgress else { return }
                 if side == currentSide {
                     dispatch(AppPrivateAction.endComputerThinking)
                 }
@@ -218,7 +220,7 @@ extension AppAction {
             print("- Logic.AppAction.waitForPlayer() START")
             guard let state = getState() else { return }
             switch state.gameProgress {
-            case .turn(_, _, let player):
+            case .turn(_, _, let player, _):
                 switch player {
                 case .manual:
                     break
@@ -236,10 +238,11 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState, dependencye in
             print("- Logic.AppAction.playTurnOfComputer() START")
             guard let state = getState() else { return }
-            guard case .none = state.computerThinking else { return }
 
             switch state.gameProgress {
-            case .turn(_, let side, _):
+            case .turn(_, let side, _, let computerThinking):
+                guard case .none = computerThinking else { return }
+
                 let candidates = state.boardContainer.board.validMoves(for: side)
                 switch candidates.isEmpty {
                 case true:
@@ -248,7 +251,7 @@ extension AppAction {
                     guard let candidate = candidates.randomElement() else { preconditionFailure() }
                     let id = state.id
                     store.dispatch(AppPrivateAction.startComputerThinking(side))
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
                         defer {
                             dispatch(AppPrivateAction.endComputerThinking)
                         }

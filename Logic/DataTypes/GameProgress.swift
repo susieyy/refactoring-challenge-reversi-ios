@@ -1,20 +1,25 @@
 import Foundation
 
-public enum GameOver: Equatable {
-    case won(Side)
-    case tied
-}
-
 public enum GameProgress: Equatable {
     case initialing
-    case turn(Progress, Side, Player)
+    case turn(Progress, Side, Player, ComputerThinking)
     case gameOver(GameOver)
     case interrupt(Interrupt)
+}
+
+public enum ComputerThinking: Equatable, Codable {
+    case none
+    case thinking(Side)
 }
 
 public enum Progress: Equatable {
     case start
     case progressing
+}
+
+public enum GameOver: Equatable {
+    case won(Side)
+    case tied
 }
 
 public enum Interrupt: Equatable {

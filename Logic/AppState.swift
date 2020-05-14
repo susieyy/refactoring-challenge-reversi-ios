@@ -10,8 +10,8 @@ public struct AppState: StateType, Codable {
             return .initialing
         } else if cannotPlaceDiskAlert != .none {
             return .interrupt(.cannotPlaceDisk(cannotPlaceDiskAlert))
-        } else if resetConfrmationAlert != .none {
-            return .interrupt(.resetConfrmation(resetConfrmationAlert))
+        } else if resetConfirmationAlert != .none {
+            return .interrupt(.resetConfirmation(resetConfirmationAlert))
         } else if let side = side {
             let progress: Progress = turnStart ? .start : .progressing
             let player: Player
@@ -34,7 +34,7 @@ public struct AppState: StateType, Codable {
     var isLoadedGame: Bool = false // prevent duplicate load game calls
     var computerThinking: ComputerThinking = .none
     var cannotPlaceDiskAlert: Alert = .none
-    var resetConfrmationAlert: Alert = .none
+    var resetConfirmationAlert: Alert = .none
 
     init(boardSetting: BoardSetting = .init(cols: 8, rows: 8)) {
         self.boardContainer = .init(diskCoordinatesState: Board(boardSetting: boardSetting))
@@ -64,14 +64,14 @@ func reducer(action: Action, state: AppState?) -> AppState {
         case .cannotPlaceDisk(let alert):
             state.cannotPlaceDiskAlert = alert
         case .resetConfirmation(let alert):
-            state.resetConfrmationAlert = alert
+            state.resetConfirmationAlert = alert
         }
     }
     if let action = action as? AppPrivateAction {
         switch action {
         case .nextTurn:
-            guard case .none = state.resetConfrmationAlert else { return state }
-            guard let temp = state.side else { return state }
+            guard case .none = state.resetConfirmationAlert else { return state }
+            guard let temp = state.side else { assertionFailure(); return state }
             state.cannotPlaceDiskAlert = .none
             let side = temp.flipped
             state.side = side
@@ -92,6 +92,9 @@ func reducer(action: Action, state: AppState?) -> AppState {
             case .sideLight: state.playerLight.player = player
             }
             state.turnStart = true
+            if side == state.side {
+                state.computerThinking = .none
+            }
         case .resetAllState:
             var newState = AppState()
             newState.playerDark = .init(side: .sideDark, count: newState.boardContainer.board.count(of: .diskDark))
@@ -101,8 +104,8 @@ func reducer(action: Action, state: AppState?) -> AppState {
             return loadedAppState
         case .finisedSaveGame:
             break
-        case .startComputerThinking(let side):
-            state.computerThinking = .thinking(side)
+        case .startComputerThinking:
+            state.computerThinking = .thinking
         case .endComputerThinking:
             state.computerThinking = .none
         }
@@ -135,7 +138,7 @@ enum AppPrivateAction: Action {
     case changePlayer(side: Side, player: Player)
     case resetAllState
     case finisedLoadGame(AppState)
-    case startComputerThinking(Side)
+    case startComputerThinking
     case endComputerThinking
     case finisedSaveGame
 }
@@ -154,11 +157,11 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.saveGame() START")
             do {
-                guard var state = getState() else { return }
+                guard var state = getState() else { preconditionFailure() }
                 state.isInitialing = true
                 state.boardContainer.changed = nil
                 state.computerThinking = .none
-                state.resetConfrmationAlert = .none
+                state.resetConfirmationAlert = .none
                 try dependency.persistentInteractor.saveGame(state)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
@@ -173,9 +176,10 @@ extension AppAction {
 
     public static func loadGame() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
-            guard getState()?.isLoadedGame == false else { return }
             print("- Logic.AppAction.loadGame() START")
             do {
+                guard let state = getState() else { preconditionFailure() }
+                guard state.isLoadedGame == false else { return } // prevent duplicate load game calls
                 dispatch(AppPrivateAction.resetAllState)
                 let loadData = try dependency.persistentInteractor.loadGame()
                 dispatch(AppPrivateAction.finisedLoadGame(loadData))
@@ -190,7 +194,7 @@ extension AppAction {
 
     public static func nextTurn() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
-            guard let state = getState() else { return }
+            guard let state = getState() else { preconditionFailure() }
             if case .turn(_, let side, _, _) = state.gameProgress {
                 print("- Logic.AppAction.nextTurn() from: \(side) to: \(side.flipped)")
             }
@@ -202,13 +206,6 @@ extension AppAction {
     public static func changePlayer(side: Side, player: Player) -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) START")
-            guard let state = getState() else { return }
-            if case .manual = player {
-                guard case .turn(_, let currentSide, _, _) = state.gameProgress else { return }
-                if side == currentSide {
-                    dispatch(AppPrivateAction.endComputerThinking)
-                }
-            }
             dispatch(AppPrivateAction.changePlayer(side: side, player: player))
             dispatch(AppAction.saveGame())
             print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) END")
@@ -218,7 +215,7 @@ extension AppAction {
     public static func waitForPlayer() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.waitForPlayer() START")
-            guard let state = getState() else { return }
+            guard let state = getState() else { preconditionFailure() }
             switch state.gameProgress {
             case .turn(_, _, let player, _):
                 switch player {
@@ -228,21 +225,18 @@ extension AppAction {
                     dispatch(AppAction.playTurnOfComputer())
                 }
             case .initialing, .interrupt, .gameOver:
-                break
+                assertionFailure()
             }
             print("- Logic.AppAction.waitForPlayer() END")
         }
     }
 
     private static func playTurnOfComputer() -> Thunk<AppState> {
-        return Thunk<AppState> { dispatch, getState, dependencye in
+        return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.playTurnOfComputer() START")
-            guard let state = getState() else { return }
-
+            guard let state = getState() else { preconditionFailure() }
             switch state.gameProgress {
-            case .turn(_, let side, _, let computerThinking):
-                guard case .none = computerThinking else { return }
-
+            case .turn(_, let side, _, _):
                 let candidates = state.boardContainer.board.validMoves(for: side)
                 switch candidates.isEmpty {
                 case true:
@@ -250,21 +244,19 @@ extension AppAction {
                 case false:
                     guard let candidate = candidates.randomElement() else { preconditionFailure() }
                     let id = state.id
-                    store.dispatch(AppPrivateAction.startComputerThinking(side))
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
-                        defer {
-                            dispatch(AppPrivateAction.endComputerThinking)
-                        }
-                        guard let state = getState() else { return }
-                        guard case .thinking = state.computerThinking else { return }
-                        guard case .none = state.resetConfrmationAlert else { return }
-
-                        guard id == state.id else { return }
+                    store.dispatch(AppPrivateAction.startComputerThinking)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + dependency.computerThinkingTime) {
+                        guard let state = getState() else { preconditionFailure() }
+                        guard id == state.id else { return } // maybe reset game
+                        guard case .turn(_, let sideEnd, _, let computerThinkingEnd) = state.gameProgress else { return }
+                        guard case .thinking = computerThinkingEnd, side == sideEnd else { return } // maybe chaned to manual player
+                        guard case .none = state.resetConfirmationAlert else { return }
+                        dispatch(AppPrivateAction.endComputerThinking)
                         dispatch(AppAction.placeDisk(candidate))
                     }
                 }
             case .initialing, .interrupt, .gameOver:
-                preconditionFailure()
+                assertionFailure()
             }
             print("- Logic.AppAction.playTurnOfComputer() END")
         }
@@ -273,13 +265,16 @@ extension AppAction {
 
 protocol Dependency {
     var persistentInteractor: PersistentInteractor { get }
+    var computerThinkingTime: DispatchTimeInterval { get }
 }
 
 struct DependencyImpl: Dependency {
     let persistentInteractor: PersistentInteractor
+    let computerThinkingTime: DispatchTimeInterval
 
-    init(persistentInteractor: PersistentInteractor = PersistentInteractorImpl()) {
+    init(persistentInteractor: PersistentInteractor = PersistentInteractorImpl(), computerThinkingTime: DispatchTimeInterval = DispatchTimeInterval.milliseconds(1000)) {
         self.persistentInteractor = persistentInteractor
+        self.computerThinkingTime = computerThinkingTime
     }
 }
 
@@ -314,6 +309,9 @@ let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
     return { next in
         return { action in
             dump(action)
+            if case AppPrivateAction.validateTurn = action {
+                print(getState()?.boardContainer.board.debugDescription ?? "N/A")
+            }
             return next(action)
         }
     }

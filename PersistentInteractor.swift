@@ -42,32 +42,6 @@ struct PersistentInteractorImpl: PersistentInteractor {
     }
 }
 
-extension ComputerThinking { /* Codable */
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let value = try? container.decode(String.self, forKey: .none), value == CodingKeys.none.rawValue {
-            self = .none
-        } else if let value = try? container.decode(Side.self, forKey: .thinking) {
-            self = .thinking(value)
-        } else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Data doesn't match"))
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case .none: try container.encode(CodingKeys.none.rawValue, forKey: .none)
-        case .thinking(let disk): try container.encode(disk, forKey: .thinking)
-        }
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case none
-        case thinking
-    }
-}
-
 extension Coordinate { /* Codable */
     enum CodingKeys: String, CodingKey {
         case x

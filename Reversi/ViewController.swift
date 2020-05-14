@@ -52,7 +52,7 @@ class ViewController: UIViewController, StoreSubscriber {
         switch $0 {
         case .initialing:
             self.animationState.cancelAll()
-            self.start()
+            self.startGame()
         case .turn(let progress, let side, _, let computerThinking):
             self.updatePlayerActivityIndicators(side: side, computerThinking: computerThinking)
             switch progress {
@@ -72,10 +72,10 @@ class ViewController: UIViewController, StoreSubscriber {
                 case .none, .showing:
                     break
                 }
-            case .resetConfrmation(let alert):
+            case .resetConfirmation(let alert):
                 switch alert {
                 case .shouldShow:
-                    self.showRestConfrmationAlert()
+                    self.showRestConfirmationAlert()
                 case .none, .showing:
                     break
                 }
@@ -110,7 +110,7 @@ extension ViewController {
         store.dispatch(AppAction.newGame())
     }
 
-    func start() {
+    func startGame() {
         store.dispatch(AppAction.startGame)
     }
 
@@ -261,7 +261,7 @@ extension ViewController {
         present(alertController, animated: true)
     }
 
-    func showRestConfrmationAlert() {
+    func showRestConfirmationAlert() {
         resetConfirmation(alert: .showing)
         let alertController = UIAlertController(
             title: "Confirmation",

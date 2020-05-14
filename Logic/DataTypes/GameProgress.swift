@@ -23,7 +23,7 @@ public enum GameOver: Equatable {
 }
 
 public enum Interrupt: Equatable {
-    case resetConfrmation(Alert)
+    case resetConfirmation(Alert)
     case cannotPlaceDisk(Alert)
 }
 

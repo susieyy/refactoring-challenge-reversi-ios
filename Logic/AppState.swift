@@ -10,8 +10,8 @@ public struct AppState: StateType, Codable {
             return .initialing
         } else if cannotPlaceDiskAlert != .none {
             return .interrupt(.cannotPlaceDisk(cannotPlaceDiskAlert))
-        } else if resetConfrmationAlert != .none {
-            return .interrupt(.resetConfrmation(resetConfrmationAlert))
+        } else if resetConfirmationAlert != .none {
+            return .interrupt(.resetConfirmation(resetConfirmationAlert))
         } else if let side = side {
             let progress: Progress = turnStart ? .start : .progressing
             let player: Player
@@ -34,7 +34,7 @@ public struct AppState: StateType, Codable {
     var isLoadedGame: Bool = false // prevent duplicate load game calls
     var computerThinking: ComputerThinking = .none
     var cannotPlaceDiskAlert: Alert = .none
-    var resetConfrmationAlert: Alert = .none
+    var resetConfirmationAlert: Alert = .none
 
     init(boardSetting: BoardSetting = .init(cols: 8, rows: 8)) {
         self.boardContainer = .init(diskCoordinatesState: Board(boardSetting: boardSetting))
@@ -64,13 +64,13 @@ func reducer(action: Action, state: AppState?) -> AppState {
         case .cannotPlaceDisk(let alert):
             state.cannotPlaceDiskAlert = alert
         case .resetConfirmation(let alert):
-            state.resetConfrmationAlert = alert
+            state.resetConfirmationAlert = alert
         }
     }
     if let action = action as? AppPrivateAction {
         switch action {
         case .nextTurn:
-            guard case .none = state.resetConfrmationAlert else { return state }
+            guard case .none = state.resetConfirmationAlert else { return state }
             guard let temp = state.side else { assertionFailure(); return state }
             state.cannotPlaceDiskAlert = .none
             let side = temp.flipped
@@ -161,7 +161,7 @@ extension AppAction {
                 state.isInitialing = true
                 state.boardContainer.changed = nil
                 state.computerThinking = .none
-                state.resetConfrmationAlert = .none
+                state.resetConfirmationAlert = .none
                 try dependency.persistentInteractor.saveGame(state)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
@@ -250,7 +250,7 @@ extension AppAction {
                         guard id == state.id else { return } // maybe reset game
                         guard case .turn(_, let sideEnd, _, let computerThinkingEnd) = state.gameProgress else { return }
                         guard case .thinking = computerThinkingEnd, side == sideEnd else { return } // maybe chaned to manual player
-                        guard case .none = state.resetConfrmationAlert else { return }
+                        guard case .none = state.resetConfirmationAlert else { return }
                         dispatch(AppPrivateAction.endComputerThinking)
                         dispatch(AppAction.placeDisk(candidate))
                     }

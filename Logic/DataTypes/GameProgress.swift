@@ -7,6 +7,23 @@ public enum GameOver: Equatable {
 
 public enum GameProgress: Equatable {
     case initialing
-    case turn(Side, Player)
+    case turn(Progress, Side, Player)
     case gameOver(GameOver)
+    case interrupt(Interrupt)
+}
+
+public enum Progress: Equatable {
+    case start
+    case progressing
+}
+
+public enum Interrupt: Equatable {
+    case resetConfrmation(Alert)
+    case cannotPlaceDisk(Alert)
+}
+
+public enum Alert: String, Equatable, Codable {
+    case none
+    case shouldShow
+    case showing
 }

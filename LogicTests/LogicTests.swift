@@ -50,8 +50,9 @@ class LogicTests: XCTestCase {
         XCTAssertEqual(false, store.state.isLoadedGame)
         XCTAssertEqual(.none, store.state.computerThinking)
         XCTAssertEqual(.sideDark, store.state.side)
-        XCTAssertEqual(nil, store.state.shouldShowCannotPlaceDisk)
-        XCTAssertEqual(false, store.state.isShowingRestConfrmation)
+        XCTAssertEqual(false, store.state.turnStart)
+        XCTAssertEqual(.none, store.state.cannotPlaceDiskAlert)
+        XCTAssertEqual(.none, store.state.resetConfrmationAlert)
         XCTAssertEqual(GameProgress.initialing, store.state.gameProgress)
 
         XCTAssertEqual(PlayerSide(player: .manual, side: .sideDark, count: 0), store.state.playerDark)

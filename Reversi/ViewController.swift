@@ -14,6 +14,7 @@ class ViewController: UIViewController, StoreSubscriber {
     private let animationState: AnimationState = .init()
     private let store: Store<AppState>
 
+
     init(store: Store<AppState> = Logic.store) {
         self.store = store
         super.init(nibName: nil, bundle: nil)
@@ -33,7 +34,6 @@ class ViewController: UIViewController, StoreSubscriber {
         store.subscribe(self)
         store.subscribe(subscriberGameProgress) { appState in appState.select { $0.gameProgress }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
-        store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
         store.subscribe(subscriberBoardContainer) { appState in appState.select { $0.boardContainer }.skipRepeats() }
     }
 
@@ -43,11 +43,11 @@ class ViewController: UIViewController, StoreSubscriber {
     }
 
     func newState(state: AppState) {
-        updatePlayerControls(state.playerDark)
-        updatePlayerControls(state.playerLight)
+        updatePlayerControls(state.gameProgress, playerSide: state.playerDark)
+        updatePlayerControls(state.gameProgress, playerSide: state.playerLight)
         updateCountLabels(state.playerDark)
         updateCountLabels(state.playerLight)
-        updateMessageViews(gameProgress: state.gameProgress)
+        updateMessageViews(state.gameProgress)
     }
 
     private lazy var subscriberGameProgress = BlockSubscriber<GameProgress>() { [unowned self] in
@@ -55,10 +55,32 @@ class ViewController: UIViewController, StoreSubscriber {
         case .initialing:
             self.animationState.cancelAll()
             self.start()
-        case .turn:
-            self.waitForPlayer()
+        case .turn(let progress, _ , _):
+            switch progress {
+            case .start:
+                self.waitForPlayer()
+            case .progressing:
+                break
+            }
         case .gameOver:
             break
+        case .interrupt(let interrupt):
+            switch interrupt {
+            case .cannotPlaceDisk(let alert):
+                switch alert {
+                case .shouldShow:
+                    self.showCannotPlaceDiskAlert()
+                case .none, .showing:
+                    break
+                }
+            case .resetConfrmation(let alert):
+                switch alert {
+                case .shouldShow:
+                    self.showRestConfrmationAlert()
+                case .none, .showing:
+                    break
+                }
+            }
         }
     }
     private lazy var subscriberBoardContainer = BlockSubscriber<BoardContainer>() { [unowned self] in
@@ -73,10 +95,6 @@ class ViewController: UIViewController, StoreSubscriber {
     }
     private lazy var subscriberComputerThinking = BlockSubscriber<ComputerThinking>() { [unowned self] in
         self.updatePlayerActivityIndicators(computerThinking: $0)
-    }
-    private lazy var subscriberShouldShowCannotPlaceDisk = BlockSubscriber<Trigger?>() { [unowned self] in
-        guard $0 != nil else { return }
-        self.showCannotPlaceDiskAlert()
     }
 }
 
@@ -97,7 +115,7 @@ extension ViewController {
     }
 
     func start() {
-        store.dispatch(AppAction.start)
+        store.dispatch(AppAction.startGame)
     }
 
     func nextTurn() {
@@ -117,12 +135,12 @@ extension ViewController {
         animationState.cancel(at: side)
     }
 
-    func showingConfirmation(isShowing: Bool) {
-        store.dispatch(AppAction.showingConfirmation(isShowing))
+    func cannotPlaceDisk(alert: Alert) {
+        store.dispatch(AppAction.cannotPlaceDisk(alert))
     }
 
-    func didShowCannotPlaceDisk() {
-        store.dispatch(AppAction.didShowCannotPlaceDisk)
+    func resetConfirmation(alert: Alert) {
+        store.dispatch(AppAction.resetConfirmation(alert))
     }
 }
 
@@ -196,19 +214,27 @@ extension ViewController {
     }
 
     /* Game */
-    func updatePlayerControls(_ playerSide: PlayerSide) {
+    func updatePlayerControls(_ gameProgress: GameProgress, playerSide: PlayerSide) {
         playerControls[playerSide.side.index].selectedSegmentIndex = playerSide.player.rawValue
+        playerControls.forEach {
+            switch gameProgress {
+            case .turn:
+                $0.isEnabled = true
+            case .initialing, .interrupt, .gameOver:
+                $0.isEnabled = false
+            }
+        }
     }
 
     func updateCountLabels(_ playerSide: PlayerSide) {
         countLabels[playerSide.side.index].text = "\(playerSide.count)"
     }
     
-    func updateMessageViews(gameProgress: GameProgress) {
+    func updateMessageViews(_ gameProgress: GameProgress) {
         switch gameProgress {
-        case .initialing:
+        case .initialing, .interrupt:
             break
-        case .turn(let side, _):
+        case .turn(_, let side, _):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side.disk
             messageLabel.text = "'s turn"
@@ -226,14 +252,32 @@ extension ViewController {
     }
 
     func showCannotPlaceDiskAlert() {
+        cannotPlaceDisk(alert: .showing)
         let alertController = UIAlertController(
             title: "Pass",
             message: "Cannot place a disk.",
             preferredStyle: .alert
         )
         alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-            self?.didShowCannotPlaceDisk()
+            self?.cannotPlaceDisk(alert: .none)
             self?.nextTurn()
+        })
+        present(alertController, animated: true)
+    }
+
+    func showRestConfrmationAlert() {
+        resetConfirmation(alert: .showing)
+        let alertController = UIAlertController(
+            title: "Confirmation",
+            message: "Do you really want to reset the game?",
+            preferredStyle: .alert
+        )
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            self?.resetConfirmation(alert: .none)
+            self?.waitForPlayer()
+        })
+        alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            self?.newGame()
         })
         present(alertController, animated: true)
     }
@@ -243,22 +287,7 @@ extension ViewController {
 
 extension ViewController {
     @IBAction func pressResetButton(_ sender: UIButton) {
-        showingConfirmation(isShowing: true)
-        let alertController = UIAlertController(
-            title: "Confirmation",
-            message: "Do you really want to reset the game?",
-            preferredStyle: .alert
-        )
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
-            guard let self = self else { return }
-            self.showingConfirmation(isShowing: false)
-            self.waitForPlayer()
-        })
-        alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
-            guard let self = self else { return }
-            self.newGame()
-        })
-        present(alertController, animated: true)
+        resetConfirmation(alert: .shouldShow)
     }
     
     @IBAction func changePlayerControlSegment(_ sender: UISegmentedControl) {
@@ -276,7 +305,7 @@ extension ViewController {
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAt coordinate: Coordinate) {
         if animationState.isAnimating { return }
-        guard case .turn(let side, let player) = store.state.gameProgress else { return }
+        guard case .turn(_, let side, let player) = store.state.gameProgress else { return }
         guard case .manual = player else { return }
         placeDisk(PlacedDiskCoordinate(disk: side.disk, coordinate: coordinate))
     }

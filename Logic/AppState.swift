@@ -6,15 +6,18 @@ public struct AppState: StateType, Codable {
     public var playerDark: PlayerSide = .init(side: .sideDark)
     public var playerLight: PlayerSide = .init(side: .sideLight)
     public var computerThinking: ComputerThinking = .none
-    public var shouldShowCannotPlaceDisk: Trigger?
-    public var isShowingRestConfrmation: Bool = false
     public var gameProgress: GameProgress {
         if isInitialing {
             return .initialing
+        } else if cannotPlaceDiskAlert != .none {
+            return .interrupt(.cannotPlaceDisk(cannotPlaceDiskAlert))
+        } else if resetConfrmationAlert != .none {
+            return .interrupt(.resetConfrmation(resetConfrmationAlert))
         } else if let side = side {
+            let progress: Progress = turnStart ? .start : .progressing
             switch side {
-            case .sideDark: return .turn(side, playerDark.player)
-            case .sideLight: return .turn(side, playerLight.player)
+            case .sideDark: return .turn(progress, side, playerDark.player)
+            case .sideLight: return .turn(progress, side, playerLight.player)
             }
         } else if let winnerSide = boardContainer.board.sideWithMoreDisks() {
             return .gameOver(.won(winnerSide))
@@ -25,8 +28,11 @@ public struct AppState: StateType, Codable {
 
     var id: String = NSUUID().uuidString // prevent override uing reseted state
     var side: Side? = .sideDark
+    var turnStart: Bool = false
     var isInitialing: Bool = true
     var isLoadedGame: Bool = false // prevent duplicate load game calls
+    var cannotPlaceDiskAlert: Alert = .none
+    var resetConfrmationAlert: Alert = .none
 
     init(boardSetting: BoardSetting = .init(cols: 8, rows: 8)) {
         self.boardContainer = .init(diskCoordinatesState: Board(boardSetting: boardSetting))
@@ -36,9 +42,13 @@ public struct AppState: StateType, Codable {
 func reducer(action: Action, state: AppState?) -> AppState {
     var state = state ?? .init()
 
+    if state.turnStart {
+        state.turnStart = false
+    }
+
     if let action = action as? AppAction {
         switch action {
-        case .start:
+        case .startGame:
             state.isInitialing = false
         case .placeDisk(let placedDiskCoordinate):
             let flippedDiskCoordinates = state.boardContainer.board.flippedDiskCoordinatesByPlacingDisk(placedDiskCoordinate)
@@ -49,41 +59,47 @@ func reducer(action: Action, state: AppState?) -> AppState {
             state.boardContainer.changed = changed
             state.playerDark.count = state.boardContainer.board.count(of: .diskDark)
             state.playerLight.count = state.boardContainer.board.count(of: .diskLight)
-        case .didShowCannotPlaceDisk:
-            state.shouldShowCannotPlaceDisk = nil
-        case .showingConfirmation(let isShowing):
-            state.isShowingRestConfrmation = isShowing
+        case .cannotPlaceDisk(let alert):
+            state.cannotPlaceDiskAlert = alert
+        case .resetConfirmation(let alert):
+            state.resetConfrmationAlert = alert
         }
     }
     if let action = action as? AppPrivateAction {
-         switch action {
-         case .nextTurn:
-             guard state.shouldShowCannotPlaceDisk == nil else { return state }
-             guard state.isShowingRestConfrmation == false else { return state }
-             guard let temp = state.side else { return state }
-             let side = temp.flipped
-             state.side = side
-             guard state.boardContainer.board.validMoves(for: side).isEmpty else { return state }
-             if state.boardContainer.board.validMoves(for: side.flipped).isEmpty {
-                 state.side = nil // GameOver
-             } else {
-                 state.shouldShowCannotPlaceDisk = .init()
-             }
-         case .changePlayer(let side, let player):
+        switch action {
+        case .nextTurn:
+            guard case .none = state.resetConfrmationAlert else { return state }
+            guard let temp = state.side else { return state }
+            state.cannotPlaceDiskAlert = .none
+            let side = temp.flipped
+            state.side = side
+        case .validateTurn:
+            guard let side = state.side else { return state }
+            if state.boardContainer.board.validMoves(for: side).isEmpty {
+                if state.boardContainer.board.validMoves(for: side.flipped).isEmpty {
+                    state.side = nil // GameOver
+                } else {
+                    state.cannotPlaceDiskAlert = .shouldShow
+                }
+            } else {
+                state.turnStart = true
+            }
+        case .changePlayer(let side, let player):
             switch side {
             case .sideDark: state.playerDark.player = player
             case .sideLight: state.playerLight.player = player
             }
-         case .resetAllState:
+            state.turnStart = true
+        case .resetAllState:
             var newState = AppState()
             newState.playerDark = .init(side: .sideDark, count: newState.boardContainer.board.count(of: .diskDark))
             newState.playerLight = .init(side: .sideLight, count: newState.boardContainer.board.count(of: .diskLight))
             return newState
-         case .finisedLoadGame(let loadedAppState):
+        case .finisedLoadGame(let loadedAppState):
             return loadedAppState
-         case .finisedSaveGame:
+        case .finisedSaveGame:
             break
-         case .startComputerThinking(let side):
+        case .startComputerThinking(let side):
             state.computerThinking = .thinking(side)
         case .endComputerThinking:
             state.computerThinking = .none
@@ -105,14 +121,15 @@ struct ErrorAction: Action {
 }
 
 public enum AppAction: Action {
-    case start
+    case startGame
     case placeDisk(PlacedDiskCoordinate)
-    case didShowCannotPlaceDisk
-    case showingConfirmation(Bool)
+    case cannotPlaceDisk(Alert)
+    case resetConfirmation(Alert)
 }
 
 enum AppPrivateAction: Action {
     case nextTurn
+    case validateTurn
     case changePlayer(side: Side, player: Player)
     case resetAllState
     case finisedLoadGame(AppState)
@@ -139,7 +156,7 @@ extension AppAction {
                 state.isInitialing = true
                 state.boardContainer.changed = nil
                 state.computerThinking = .none
-                state.isShowingRestConfrmation = false
+                state.resetConfrmationAlert = .none
                 try dependency.persistentInteractor.saveGame(state)
                 dispatch(AppPrivateAction.finisedSaveGame)
             } catch let error {
@@ -160,6 +177,7 @@ extension AppAction {
                 dispatch(AppPrivateAction.resetAllState)
                 let loadData = try dependency.persistentInteractor.loadGame()
                 dispatch(AppPrivateAction.finisedLoadGame(loadData))
+                dispatch(AppPrivateAction.validateTurn)
             } catch let error {
                 dump(error)
                 dispatch(AppAction.newGame())
@@ -170,20 +188,21 @@ extension AppAction {
 
     public static func nextTurn() -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
-            guard let appSate = getState() else { return }
-            if case .turn(let side, _) = appSate.gameProgress {
+            guard let state = getState() else { return }
+            if case .turn(_, let side, _) = state.gameProgress {
                 print("- Logic.AppAction.nextTurn() from: \(side) to: \(side.flipped)")
             }
             dispatch(AppPrivateAction.nextTurn)
+            dispatch(AppPrivateAction.validateTurn)
         }
     }
 
     public static func changePlayer(side: Side, player: Player) -> Thunk<AppState> {
         return Thunk<AppState> { dispatch, getState, dependency in
             print("- Logic.AppAction.changePlayer(side: \(side), player: \(player)) START")
-            guard let appSate = getState() else { return }
+            guard let state = getState() else { return }
             if case .manual = player {
-                guard case .turn(let currentSide, _) = appSate.gameProgress else { return }
+                guard case .turn(_, let currentSide, _) = state.gameProgress else { return }
                 if side == currentSide {
                     dispatch(AppPrivateAction.endComputerThinking)
                 }
@@ -199,17 +218,15 @@ extension AppAction {
             print("- Logic.AppAction.waitForPlayer() START")
             guard let state = getState() else { return }
             switch state.gameProgress {
-            case .initialing:
-                break
-            case .turn(_, let player):
+            case .turn(_, _, let player):
                 switch player {
                 case .manual:
                     break
                 case .computer:
                     dispatch(AppAction.playTurnOfComputer())
                 }
-            case .gameOver:
-                preconditionFailure()
+            case .initialing, .interrupt, .gameOver:
+                break
             }
             print("- Logic.AppAction.waitForPlayer() END")
         }
@@ -219,14 +236,10 @@ extension AppAction {
         return Thunk<AppState> { dispatch, getState, dependencye in
             print("- Logic.AppAction.playTurnOfComputer() START")
             guard let state = getState() else { return }
-            if case .thinking = state.computerThinking {
-                return
-            }
+            guard case .none = state.computerThinking else { return }
 
             switch state.gameProgress {
-            case .initialing:
-                break
-            case .turn(let side, _):
+            case .turn(_, let side, _):
                 let candidates = state.boardContainer.board.validMoves(for: side)
                 switch candidates.isEmpty {
                 case true:
@@ -239,13 +252,15 @@ extension AppAction {
                         defer {
                             dispatch(AppPrivateAction.endComputerThinking)
                         }
-                        guard let appState = getState() else { return }
-                        guard case .thinking = appState.computerThinking else { return }
-                        guard id == appState.id else { return }
+                        guard let state = getState() else { return }
+                        guard case .thinking = state.computerThinking else { return }
+                        guard case .none = state.resetConfrmationAlert else { return }
+
+                        guard id == state.id else { return }
                         dispatch(AppAction.placeDisk(candidate))
                     }
                 }
-            case .gameOver:
+            case .initialing, .interrupt, .gameOver:
                 preconditionFailure()
             }
             print("- Logic.AppAction.playTurnOfComputer() END")

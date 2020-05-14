@@ -3,7 +3,7 @@ import Foundation
 protocol Repository {
     func saveData(_ data: Data) throws /* FileIOError */
     func loadData() throws -> Data /* FileIOError */
-    func clear() throws
+    func clear() throws /* FileIOError */
 }
 
 struct RepositoryImpl: Repository {

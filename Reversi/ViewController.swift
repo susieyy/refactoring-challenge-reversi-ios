@@ -23,7 +23,7 @@ class ViewController: UIViewController, StoreSubscriber {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: State handling (State -> State, or Views)
+    // MARK: #1 / State handling (State -> Game management or View update)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -94,7 +94,7 @@ class ViewController: UIViewController, StoreSubscriber {
     }
 }
 
-// MARK: Game management (Views -> State)
+// MARK: #2/ Game management(Game management -> Dispatch Action)
 
 extension ViewController {
     func saveGame() {
@@ -140,10 +140,9 @@ extension ViewController {
     }
 }
 
-// MARK: Views (State -> Views)
+// MARK: #3 / Views update
 
 extension ViewController {
-    /* Board */
     func updateDisksForInitial(_ diskCoordinates: [OptionalDiskCoordinate]) {
         diskCoordinates.forEach {
             boardView.updateDisk($0.disk, coordinate: $0.coordinate, animated: false)
@@ -209,7 +208,6 @@ extension ViewController {
         }
     }
 
-    /* Game */
     func updatePlayerControls(_ gameProgress: GameProgress, playerSide: PlayerSide) {
         playerControls[playerSide.side.index].selectedSegmentIndex = playerSide.player.rawValue
         playerControls.forEach {

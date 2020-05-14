@@ -57,7 +57,7 @@ class ViewController: UIViewController, StoreSubscriber {
             self.start()
         case .turn:
             self.waitForPlayer()
-        case .gameOverTied, .gameOverWon:
+        case .gameOver:
             break
         }
     }
@@ -212,13 +212,16 @@ extension ViewController {
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side.disk
             messageLabel.text = "'s turn"
-        case .gameOverWon(let winner):
-            messageDiskSizeConstraint.constant = messageDiskSize
-            messageDiskView.disk = winner.disk
-            messageLabel.text = " won"
-        case .gameOverTied:
-            messageDiskSizeConstraint.constant = 0
-            messageLabel.text = "Tied"
+        case .gameOver(let gameOver):
+            switch gameOver {
+            case .won(let winner):
+                messageDiskSizeConstraint.constant = messageDiskSize
+                messageDiskView.disk = winner.disk
+                messageLabel.text = " won"
+            case .tied:
+                messageDiskSizeConstraint.constant = 0
+                messageLabel.text = "Tied"
+            }
         }
     }
 

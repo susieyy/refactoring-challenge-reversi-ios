@@ -17,9 +17,9 @@ public struct AppState: StateType, Codable {
             case .sideLight: return .turn(side, playerLight.player)
             }
         } else if let winnerSide = boardContainer.board.sideWithMoreDisks() {
-            return .gameOverWon(winnerSide)
+            return .gameOver(.won(winnerSide))
         } else {
-            return .gameOverTied
+            return .gameOver(.tied)
         }
     }
 
@@ -208,7 +208,7 @@ extension AppAction {
                 case .computer:
                     dispatch(AppAction.playTurnOfComputer())
                 }
-            case .gameOverWon, .gameOverTied:
+            case .gameOver:
                 preconditionFailure()
             }
             print("- Logic.AppAction.waitForPlayer() END")
@@ -245,7 +245,7 @@ extension AppAction {
                         dispatch(AppAction.placeDisk(candidate))
                     }
                 }
-            case .gameOverWon, .gameOverTied:
+            case .gameOver:
                 preconditionFailure()
             }
             print("- Logic.AppAction.playTurnOfComputer() END")

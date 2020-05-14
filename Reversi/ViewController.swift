@@ -196,12 +196,12 @@ extension ViewController {
     }
 
     /* Game */
-    func updatePlayerControls(_ playerState: PlayerSide) {
-        playerControls[playerState.side.index].selectedSegmentIndex = playerState.player.rawValue
+    func updatePlayerControls(_ playerSide: PlayerSide) {
+        playerControls[playerSide.side.index].selectedSegmentIndex = playerSide.player.rawValue
     }
 
-    func updateCountLabels(_ playerState: PlayerSide) {
-        countLabels[playerState.side.index].text = "\(playerState.count)"
+    func updateCountLabels(_ playerSide: PlayerSide) {
+        countLabels[playerSide.side.index].text = "\(playerSide.count)"
     }
     
     func updateMessageViews(gameProgress: GameProgress) {

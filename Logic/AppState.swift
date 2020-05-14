@@ -309,6 +309,9 @@ let loggingMiddleware: Middleware<AppState> = { dispatch, getState in
     return { next in
         return { action in
             dump(action)
+            if case AppPrivateAction.validateTurn = action {
+                print(getState()?.boardContainer.board.debugDescription ?? "N/A")
+            }
             return next(action)
         }
     }

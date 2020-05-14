@@ -31,7 +31,7 @@ class ViewController: UIViewController, StoreSubscriber {
         boardView.setUp(boardSetting: store.state.boardContainer.boardSetting)
         messageDiskSize = messageDiskSizeConstraint.constant
         store.subscribe(self)
-        store.subscribe(subscriberCurrentTurn) { appState in appState.select { $0.currentTurn }.skipRepeats() }
+        store.subscribe(subscriberGameProgress) { appState in appState.select { $0.gameProgress }.skipRepeats() }
         store.subscribe(subscriberComputerThinking) { appState in appState.select { $0.computerThinking }.skipRepeats() }
         store.subscribe(subscriberShouldShowCannotPlaceDisk) { appState in appState.select { $0.shouldShowCannotPlaceDisk }.skipRepeats() }
         store.subscribe(subscriberBoardContainer) { appState in appState.select { $0.boardContainer }.skipRepeats() }
@@ -47,10 +47,10 @@ class ViewController: UIViewController, StoreSubscriber {
         updatePlayerControls(state.playerLight)
         updateCountLabels(state.playerDark)
         updateCountLabels(state.playerLight)
-        updateMessageViews(currentTurn: state.currentTurn)
+        updateMessageViews(gameProgress: state.gameProgress)
     }
 
-    private lazy var subscriberCurrentTurn = BlockSubscriber<CurrentTurn>() { [unowned self] in
+    private lazy var subscriberGameProgress = BlockSubscriber<GameProgress>() { [unowned self] in
         switch $0 {
         case .initialing:
             self.animationState.cancelAll()
@@ -204,8 +204,8 @@ extension ViewController {
         countLabels[playerState.side.index].text = "\(playerState.count)"
     }
     
-    func updateMessageViews(currentTurn: CurrentTurn) {
-        switch currentTurn {
+    func updateMessageViews(gameProgress: GameProgress) {
+        switch gameProgress {
         case .initialing:
             break
         case .turn(let side, _):
@@ -273,7 +273,7 @@ extension ViewController {
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAt coordinate: Coordinate) {
         if animationState.isAnimating { return }
-        guard case .turn(let side, let player) = store.state.currentTurn else { return }
+        guard case .turn(let side, let player) = store.state.gameProgress else { return }
         guard case .manual = player else { return }
         placeDisk(PlacedDiskCoordinate(disk: side.disk, coordinate: coordinate))
     }

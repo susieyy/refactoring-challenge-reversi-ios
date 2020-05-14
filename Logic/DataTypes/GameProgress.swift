@@ -1,6 +1,6 @@
 import Foundation
 
-public enum CurrentTurn: Equatable {
+public enum GameProgress: Equatable {
     case initialing
     case turn(Side, Player)
     case gameOverWon(Side)

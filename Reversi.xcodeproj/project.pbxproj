@@ -23,7 +23,7 @@
 		AA308D87243F3B5B0041763B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA308D86243F3B5B0041763B /* AppState.swift */; };
 		AA308D8B243F40CE0041763B /* ViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = AA308D89243F40CE0041763B /* ViewController.xib */; };
 		AA3FFD752467FBC500D4F3FB /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD742467FBC500D4F3FB /* Trigger.swift */; };
-		AA3FFD772467FEB200D4F3FB /* CurrentTurn.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD762467FEB200D4F3FB /* CurrentTurn.swift */; };
+		AA3FFD772467FEB200D4F3FB /* GameProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD762467FEB200D4F3FB /* GameProgress.swift */; };
 		AA3FFD792467FEDB00D4F3FB /* PlayerSide.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */; };
 		AA3FFD7B2467FF0A00D4F3FB /* ComputerThinking.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */; };
 		AA3FFD7D2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */; };
@@ -105,7 +105,7 @@
 		AA308D86243F3B5B0041763B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		AA308D89243F40CE0041763B /* ViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ViewController.xib; sourceTree = "<group>"; };
 		AA3FFD742467FBC500D4F3FB /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
-		AA3FFD762467FEB200D4F3FB /* CurrentTurn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentTurn.swift; sourceTree = "<group>"; };
+		AA3FFD762467FEB200D4F3FB /* GameProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameProgress.swift; sourceTree = "<group>"; };
 		AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSide.swift; sourceTree = "<group>"; };
 		AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputerThinking.swift; sourceTree = "<group>"; };
 		AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacedDiskCoordinate.swift; sourceTree = "<group>"; };
@@ -169,7 +169,6 @@
 			children = (
 				AA308D86243F3B5B0041763B /* AppState.swift */,
 				AA308D76243F1FA30041763B /* AnimationState.swift */,
-				AA308D7A243F1FA30041763B /* PersistentInteractor.swift */,
 				AA308D79243F1FA30041763B /* Repository.swift */,
 				AA308D6B243F1F700041763B /* DataTypes */,
 				AA308D4A243F1F140041763B /* Logic.h */,
@@ -197,7 +196,7 @@
 				AA308D6E243F1F700041763B /* BoardSetting.swift */,
 				AA308D6F243F1F700041763B /* Canceller.swift */,
 				AA3FFD742467FBC500D4F3FB /* Trigger.swift */,
-				AA3FFD762467FEB200D4F3FB /* CurrentTurn.swift */,
+				AA3FFD762467FEB200D4F3FB /* GameProgress.swift */,
 				AA3FFD782467FEDB00D4F3FB /* PlayerSide.swift */,
 				AA3FFD7A2467FF0A00D4F3FB /* ComputerThinking.swift */,
 				AA3FFD7C2467FF1C00D4F3FB /* PlacedDiskCoordinate.swift */,
@@ -228,6 +227,7 @@
 		D642BDA723A9FE4500396732 = {
 			isa = PBXGroup;
 			children = (
+				AA308D7A243F1FA30041763B /* PersistentInteractor.swift */,
 				D642BDB223A9FE4500396732 /* Reversi */,
 				D642BDC923A9FE4700396732 /* ReversiTests */,
 				AA308D49243F1F140041763B /* Logic */,
@@ -467,7 +467,7 @@
 				AA308D87243F3B5B0041763B /* AppState.swift in Sources */,
 				AA3FFD752467FBC500D4F3FB /* Trigger.swift in Sources */,
 				AA308D75243F1F700041763B /* Player.swift in Sources */,
-				AA3FFD772467FEB200D4F3FB /* CurrentTurn.swift in Sources */,
+				AA3FFD772467FEB200D4F3FB /* GameProgress.swift in Sources */,
 				AA308D74243F1F700041763B /* Canceller.swift in Sources */,
 				AA98C6142463ACAD00BF867E /* Coordinate.swift in Sources */,
 				AA3FFD792467FEDB00D4F3FB /* PlayerSide.swift in Sources */,

@@ -166,6 +166,7 @@
 				AA308D86243F3B5B0041763B /* AppState.swift */,
 				AA308D76243F1FA30041763B /* AnimationState.swift */,
 				AA308D79243F1FA30041763B /* Repository.swift */,
+				AA308D7A243F1FA30041763B /* PersistentInteractor.swift */,
 				AA308D6B243F1F700041763B /* DataTypes */,
 				AA308D4A243F1F140041763B /* Logic.h */,
 				AA308D4B243F1F140041763B /* Info.plist */,
@@ -221,7 +222,6 @@
 		D642BDA723A9FE4500396732 = {
 			isa = PBXGroup;
 			children = (
-				AA308D7A243F1FA30041763B /* PersistentInteractor.swift */,
 				D642BDB223A9FE4500396732 /* Reversi */,
 				D642BDC923A9FE4700396732 /* ReversiTests */,
 				AA308D49243F1F140041763B /* Logic */,

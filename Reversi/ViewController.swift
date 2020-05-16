@@ -298,7 +298,7 @@ extension ViewController {
 
 extension ViewController: BoardViewDelegate {
     func boardView(_ boardView: BoardView, didSelectCellAt coordinate: Coordinate) {
-        if animationState.isAnimating { return }
+        guard !animationState.isAnimating else { return }
         guard case .turn(_, let side, let player, _) = store.state.gameProgress else { return }
         guard case .manual = player else { return }
         placeDisk(PlacedDiskCoordinate(disk: side.disk, coordinate: coordinate))
@@ -313,15 +313,6 @@ extension UISegmentedControl {
         case 0: return .manual
         case 1: return .computer
         default: preconditionFailure()
-        }
-    }
-}
-
-extension Disk {
-    var name: String {
-        switch self {
-        case .diskDark: return "dark"
-        case .diskLight: return "light"
         }
     }
 }

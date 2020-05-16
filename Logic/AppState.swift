@@ -113,12 +113,6 @@ func reducer(action: Action, state: AppState?) -> AppState {
     return state
 }
 
-public let store = Store<AppState>(
-    reducer: reducer,
-    state: AppState(),
-    middleware: [thunkMiddleware, loggingMiddleware]
-)
-
 struct ErrorAction: Action {
     let error: Error
     let title: String
@@ -262,6 +256,12 @@ extension AppAction {
         }
     }
 }
+
+public let store = Store<AppState>(
+    reducer: reducer,
+    state: AppState(),
+    middleware: [thunkMiddleware, loggingMiddleware]
+)
 
 protocol Dependency {
     var persistentInteractor: PersistentInteractor { get }

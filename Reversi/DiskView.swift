@@ -36,6 +36,13 @@ public class DiskView: UIView {
 }
 
 extension Disk {
+    fileprivate var name: String {
+        switch self {
+        case .diskDark: return "dark"
+        case .diskLight: return "light"
+        }
+    }
+
     fileprivate var uiColor: UIColor {
         switch self {
         case .diskDark: return UIColor(named: "DarkColor")!
